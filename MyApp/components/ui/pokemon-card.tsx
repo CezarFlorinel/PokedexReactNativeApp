@@ -69,7 +69,7 @@ export default function PokemonCard({ pokemon, onPress }: PokemonCardProps) {
         {/* top: id badge */}
         <View style={styles.topRow}>
           <View style={styles.idBadge}>
-            <Text style={styles.idText}>#{String(idNum).padStart(3, "0")}</Text>
+            <Text style={styles.idText}>{String(idNum).padStart(3, "0")}</Text>
           </View>
         </View>
 

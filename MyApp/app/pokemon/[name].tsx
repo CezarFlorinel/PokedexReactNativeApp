@@ -36,30 +36,30 @@ export default function PokemonDetailScreen() {
   const { data: isFav } = useIsFavorite(idNum);
   const toggleFavorite = useToggleFavorite();
 
-const TYPE_COLORS: Record<string, string> = { // just use this made by chatgpt, looks good
-  normal:  "#A8A77A",
-  fire:    "#EE8130",
-  water:   "#6390F0",
-  electric:"#F7D02C",
-  grass:   "#7AC74C",
-  ice:     "#96D9D6",
-  fighting:"#C22E28",
-  poison:  "#A33EA1",
-  ground:  "#E2BF65",
-  flying:  "#A98FF3",
-  psychic: "#F95587",
-  bug:     "#A6B91A",
-  rock:    "#B6A136",
-  ghost:   "#735797",
-  dragon:  "#6F35FC",
-  dark:    "#705746",
-  steel:   "#B7B7CE",
-  fairy:   "#D685AD",
-};
+  const TYPE_COLORS: Record<string, string> = { // just use this made by chatgpt, looks good
+    normal: "#A8A77A",
+    fire: "#EE8130",
+    water: "#6390F0",
+    electric: "#F7D02C",
+    grass: "#7AC74C",
+    ice: "#96D9D6",
+    fighting: "#C22E28",
+    poison: "#A33EA1",
+    ground: "#E2BF65",
+    flying: "#A98FF3",
+    psychic: "#F95587",
+    bug: "#A6B91A",
+    rock: "#B6A136",
+    ghost: "#735797",
+    dragon: "#6F35FC",
+    dark: "#705746",
+    steel: "#B7B7CE",
+    fairy: "#D685AD",
+  };
 
-function getTypeColor(type: string) {
-  return TYPE_COLORS[type.toLowerCase()] ?? "#888";
-}
+  function getTypeColor(type: string) {
+    return TYPE_COLORS[type.toLowerCase()] ?? "#888";
+  }
 
   if (isLoading) {
     return (
@@ -89,50 +89,50 @@ function getTypeColor(type: string) {
   // Evolution list (flatten chain)
   const evolutions = useMemo(() => flattenEvolution(chain?.chain), [chain]);
   return (
-   <SafeAreaView style={styles.container}>
-  <ScrollView contentContainerStyle={styles.scrollContent}>
-    {/* header  */}
-    <View style={styles.headerContainer}>
-      <View style={styles.topBar}>
-        <Pressable style={styles.iconBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#0E0940" />
-        </Pressable>
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* header  */}
+        <View style={styles.headerContainer}>
+          <View style={styles.topBar}>
+            <Pressable style={styles.iconBtn} onPress={() => router.back()}>
+              <Ionicons name="arrow-back" size={22} color="#0E0940" />
+            </Pressable>
 
-        <Pressable
-          style={styles.iconBtn}
-          onPress={() =>
-            toggleFavorite.mutate({
-              pokemonId: idNum,
-              name: pokemon.name,
-              imageUrl,
-              isCurrentlyFavorite: !!isFav,
-            })
-          }
-        >
-          <Ionicons
-            name={isFav ? "heart" : "heart-outline"}
-            size={22}
-            color={isFav ? "#EF5350" : "#0E0940"}
-          />
-        </Pressable>
-      </View>
+            <Pressable
+              style={styles.iconBtn}
+              onPress={() =>
+                toggleFavorite.mutate({
+                  pokemonId: idNum,
+                  name: pokemon.name,
+                  imageUrl,
+                  isCurrentlyFavorite: !!isFav,
+                })
+              }
+            >
+              <Ionicons
+                name={isFav ? "heart" : "heart-outline"}
+                size={22}
+                color={isFav ? "#EF5350" : "#0E0940"}
+              />
+            </Pressable>
+          </View>
 
-      {/* Name + ID */}
-      <View style={styles.nameRow}>
-        <Text numberOfLines={1} style={styles.pokemonName}>{title}</Text>
-        <Text style={styles.pokemonId}>{idPadded}</Text>
-      </View>
-    </View>
+          {/* Name + ID */}
+          <View style={styles.nameRow}>
+            <Text numberOfLines={1} style={styles.pokemonName}>{title}</Text>
+            <Text style={styles.pokemonId}>{idPadded}</Text>
+          </View>
+        </View>
 
         {/* Types on blue background */}
-<View style={styles.typesRow}>
-  {pokemon.types.map((t, i) => (
-    <View key={i} style={styles.typeBadge}>
-      <View style={[styles.typeDot, { backgroundColor: getTypeColor(t.type.name) }]} />
-      <Text style={styles.typeText}>{capitalize(t.type.name)}</Text>
-    </View>
-  ))}
-</View>
+        <View style={styles.typesRow}>
+          {pokemon.types.map((t, i) => (
+            <View key={i} style={styles.typeBadge}>
+              <View style={[styles.typeDot, { backgroundColor: getTypeColor(t.type.name) }]} />
+              <Text style={styles.typeText}>{capitalize(t.type.name)}</Text>
+            </View>
+          ))}
+        </View>
 
         {/* Big image on blue background */}
         <View style={styles.heroImageWrap}>
@@ -278,7 +278,7 @@ const BLUE_BG = "#edf6ff";
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BLUE_BG },
 
-    headerContainer: {
+  headerContainer: {
     backgroundColor: BLUE_BG,
     paddingHorizontal: 16,
     paddingTop: 8,
@@ -300,32 +300,32 @@ const styles = StyleSheet.create({
   },
 
   typesRow: {
-  flexDirection: "row",
-  gap: 8,
-  paddingHorizontal: 16,
-  paddingTop: 8,
-},
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+  },
 
-typeBadge: {
-  flexDirection: "row",
-  alignItems: "center",
-  gap: 8,
-  backgroundColor: "#E6ECF6", // subtle pill background
-  paddingHorizontal: 12,
-  paddingVertical: 6,
-  borderRadius: 20,
-},
+  typeBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#E6ECF6", // subtle pill background
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
 
-typeDot: {
-  width: 12,
-  height: 12,
-  borderRadius: 6,
-},
+  typeDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
 
-typeText: {
-  color: "#0E0940",
-  fontWeight: "800",
-},
+  typeText: {
+    color: "#0E0940",
+    fontWeight: "800",
+  },
 
   // REPLACES header
   nameRow: {
@@ -457,6 +457,6 @@ typeText: {
   evoIdText: { color: "#fff", fontWeight: "bold", fontSize: 12 },
   evoName: { fontSize: 16, fontWeight: "700", color: "#0E0940" },
 
-  
+
 });
 

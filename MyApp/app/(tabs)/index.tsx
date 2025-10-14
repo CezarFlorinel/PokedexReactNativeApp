@@ -26,7 +26,7 @@ export default function PokemonScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>All Pokémon ⚡</Text>
+      <Text style={styles.title}>All Pokémon</Text>
       <PokemonList data={pokemonList ?? []} />
     </SafeAreaView>
   );
