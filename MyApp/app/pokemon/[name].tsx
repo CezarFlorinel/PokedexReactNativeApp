@@ -58,7 +58,7 @@ export default function PokemonDetailScreen() {
   }
 
   const title = capitalize(pokemon.name);
-  const idStr = `#${String(pokemon.id).padStart(3, "0")}`;
+const idPadded = String(pokemon.id).padStart(3, "0");
   const imageUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemon.id}.png`;
 
   // Evolution list (flatten chain)
@@ -94,7 +94,7 @@ export default function PokemonDetailScreen() {
         {/* Title & ID */}
         <View style={styles.header}>
           <Text style={styles.pokemonName}>{title}</Text>
-          <Text style={styles.pokemonId}>{idStr}</Text>
+          <Text style={styles.pokemonId}>{idPadded}</Text> 
         </View>
 
         {/* Types */}
@@ -118,11 +118,11 @@ export default function PokemonDetailScreen() {
           <Tab label="Evolution" active={tab === "evolution"} onPress={() => setTab("evolution")} />
         </View>
 
-        {/* Content */}
-        {tab === "about" && (
+        {/* about tab  ++++++++++++++++++++++++++++==================================*/}
+        {tab === "about" && ( 
           <View style={styles.card}>
             <InfoRow label="Name" value={title} />
-            <InfoRow label="ID" value={idStr} />
+            <InfoRow label="ID" value={idPadded} />
             <InfoRow label="Base" value={`${pokemon.base_experience ?? "-"} XP`} />
             <InfoRow label="Weight" value={`${(pokemon.weight ?? 0) / 10} kg`} />
             <InfoRow label="Height" value={`${(pokemon.height ?? 0) / 10} m`} />
@@ -138,7 +138,7 @@ export default function PokemonDetailScreen() {
             />
           </View>
         )}
-
+        {/* stats tab  ++++++++++++++++++++++++++++==================================*/}
         {tab === "stats" && (
           <View style={styles.card}>
             {pokemon.stats.map((s, i) => (
@@ -151,7 +151,7 @@ export default function PokemonDetailScreen() {
             ))}
           </View>
         )}
-
+        {/* evolution tab  ++++++++++++++++++++++++++++==================================*/}
         {tab === "evolution" && (
           <View style={[styles.card, { gap: 12 }]}>
             {evolutions.length === 0 && (
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
     color: "#0E0940",
     textTransform: "capitalize",
   },
-  pokemonId: { fontSize: 18, color: "#999", fontWeight: "600" },
+  pokemonId: { fontSize: 32, color: "#999", fontWeight: "300" },
 
   typesRow: {
     flexDirection: "row",
