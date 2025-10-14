@@ -1,11 +1,11 @@
 import PokemonList from "@/components/ui/pokemon-list";
-import { useInfinitePokemonList, mapPagesToBasics } from "@/hooks/use-pokemon"; // ✅ change
-import React from "react";
+import SearchBar from "@/components/ui/search-bar";
+import { useInfinitePokemonList, mapPagesToBasics } from "@/hooks/use-pokemon";
+import React, { useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function PokemonScreen() {
-  // use infinite query (default page size = 150)
   const {
     data,
     isLoading,
@@ -15,7 +15,16 @@ export default function PokemonScreen() {
     isFetchingNextPage,
   } = useInfinitePokemonList();
 
-  const flatData = mapPagesToBasics(data); // flatten pages -> BasicPokemon[]
+  const flatData = mapPagesToBasics(data); // BasicPokemon[]
+
+  const [query, setQuery] = useState("");
+
+  // case-insensitive contains match
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return flatData;
+    return flatData.filter(p => p.name.toLowerCase().includes(q));
+  }, [flatData, query]);
 
   if (isLoading) {
     return (
@@ -35,19 +44,34 @@ export default function PokemonScreen() {
   }
 
   const loadMore = () => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
+    // When searching, don't fetch more pages.
+    if (query) return;
+    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>All Pokémon</Text>
+
+      <View style={styles.searchWrap}>
+        <SearchBar
+          value={query}
+          onChangeText={setQuery}
+          onClear={() => setQuery("")}
+        />
+      </View>
+
       <PokemonList
-        data={flatData}
-        onEndReached={loadMore}                 
-        isFetchingNextPage={isFetchingNextPage} 
+        data={filtered}
+        onEndReached={loadMore}
+        isFetchingNextPage={isFetchingNextPage}
       />
+
+      {query.length > 0 && filtered.length === 0 && (
+        <View style={styles.emptyWrap}>
+          <Text style={styles.emptyText}>No Pokémon match “{query}”.</Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -56,4 +80,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 6, paddingVertical: 0, backgroundColor: "#f0f8ff" },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   title: { fontSize: 24, fontWeight: "bold", marginVertical: 12, marginLeft: 12, color: "#0E0940" },
+  searchWrap: { paddingHorizontal: 6, marginBottom: 8 },
+  emptyWrap: { alignItems: "center", paddingVertical: 16 },
+  emptyText: { color: "#666" },
 });
+
