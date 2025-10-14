@@ -1,6 +1,10 @@
 import PokemonList from "@/components/ui/pokemon-list";
 import SearchBar from "@/components/ui/search-bar";
-import { useInfinitePokemonList, mapPagesToBasics } from "@/hooks/use-pokemon";
+import {
+  useInfinitePokemonList,
+  mapPagesToBasics,
+  usePokemonIndex
+} from "@/hooks/use-pokemon";
 import React, { useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -15,16 +19,17 @@ export default function PokemonScreen() {
     isFetchingNextPage,
   } = useInfinitePokemonList();
 
-  const flatData = mapPagesToBasics(data); // BasicPokemon[]
+  const { data: fullIndex, isLoading: indexLoading } = usePokemonIndex();
 
+  const flatData = mapPagesToBasics(data); // page-based list (for empty search)
   const [query, setQuery] = useState("");
 
-  // case-insensitive contains match
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return flatData;
-    return flatData.filter(p => p.name.toLowerCase().includes(q));
-  }, [flatData, query]);
+    if (!q) return flatData;                   // show paged list
+    if (!fullIndex) return [];                 // wait for index
+    return fullIndex.filter(p => p.name.toLowerCase().includes(q));
+  }, [flatData, fullIndex, query]);
 
   if (isLoading) {
     return (
@@ -44,30 +49,35 @@ export default function PokemonScreen() {
   }
 
   const loadMore = () => {
-    // When searching, don't fetch more pages.
+    // disable infinite load during search; filter is already “full DB”
     if (query) return;
     if (hasNextPage && !isFetchingNextPage) fetchNextPage();
   };
+
+  const showIndexSpinner = query.length > 0 && indexLoading;
 
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>All Pokémon</Text>
 
       <View style={styles.searchWrap}>
-        <SearchBar
-          value={query}
-          onChangeText={setQuery}
-          onClear={() => setQuery("")}
-        />
+        <SearchBar value={query} onChangeText={setQuery} onClear={() => setQuery("")} />
       </View>
 
-      <PokemonList
-        data={filtered}
-        onEndReached={loadMore}
-        isFetchingNextPage={isFetchingNextPage}
-      />
+      {showIndexSpinner ? (
+        <View style={styles.center}>
+          <ActivityIndicator />
+          <Text>Searching entire Pokédex…</Text>
+        </View>
+      ) : (
+        <PokemonList
+          data={filtered}
+          onEndReached={loadMore}
+          isFetchingNextPage={!query && isFetchingNextPage}
+        />
+      )}
 
-      {query.length > 0 && filtered.length === 0 && (
+      {query.length > 0 && !indexLoading && filtered.length === 0 && (
         <View style={styles.emptyWrap}>
           <Text style={styles.emptyText}>No Pokémon match “{query}”.</Text>
         </View>
@@ -77,7 +87,7 @@ export default function PokemonScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 6, paddingVertical: 0, backgroundColor: "#f0f8ff" },
+  container: { flex: 1, paddingHorizontal: 6, backgroundColor: "#f0f8ff" },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   title: { fontSize: 24, fontWeight: "bold", marginVertical: 12, marginLeft: 12, color: "#0E0940" },
   searchWrap: { paddingHorizontal: 6, marginBottom: 8 },

@@ -23,6 +23,8 @@ interface ApiResourceList {
   results: NamedAPIResource[];
 }
 
+export const ALL_POKEMON_LIMIT = 2000; // use for the search bar , to check all Pokémon
+
 const getId = (url: string): number =>
   Number(url.match(/\/pokemon\/(\d+)\/?$/)?.[1] || 0);
 
@@ -109,3 +111,16 @@ export const idFromUrl = (url?: string | null): number | null => {
   const m = url.match(/\/(\d+)\/?$/);
   return m ? Number(m[1]) : null;
 };
+
+export const usePokemonIndex = () =>
+  useQuery({
+    queryKey: ["pokemon-index"],
+    // PokeAPI uses (offset, limit)
+    queryFn: async () => {
+      const res = await PokeApiService.listPokemons(0, ALL_POKEMON_LIMIT);
+      return res.results.map(toBasic); // -> BasicPokemon[] (id, name)
+    },
+    // keep it around; it hardly changes
+    staleTime: 24 * 60 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
+  });
