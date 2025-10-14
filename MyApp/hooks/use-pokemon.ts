@@ -1,6 +1,7 @@
 import { EvolutionApiService, PokeApiService } from "@/services/pokemon-api";
-import { useQuery } from "@tanstack/react-query";
+import { InfiniteData, useQuery } from "@tanstack/react-query";
 import { NamedAPIResource } from "pokenode-ts";
+import { useInfiniteQuery } from "@tanstack/react-query";
 
 // type for Pokémon with ID
 export type PokemonWithId = NamedAPIResource & {
@@ -8,6 +9,51 @@ export type PokemonWithId = NamedAPIResource & {
 };
 
 export type BasicPokemon = { id: number; name: string };
+export const PAGE_SIZE = 150;
+
+const toBasic = (r: NamedAPIResource): BasicPokemon => ({
+  id: getId(r.url),
+  name: r.name,
+});
+
+interface ApiResourceList {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: NamedAPIResource[];
+}
+
+const getId = (url: string): number =>
+  Number(url.match(/\/pokemon\/(\d+)\/?$/)?.[1] || 0);
+
+export const useInfinitePokemonList = (pageSize = PAGE_SIZE) =>
+  useInfiniteQuery<
+    ApiResourceList,                  // TQueryFnData
+    Error,                            // TError
+    InfiniteData<ApiResourceList, number>, // TData  ✅ important
+    [string, number],                 // TQueryKey
+    number                            // TPageParam
+  >({
+    queryKey: ["pokemon-infinite", pageSize],
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      const offset = pageParam as number;
+      return PokeApiService.listPokemons(offset, pageSize); // (offset, limit)
+    },
+    getNextPageParam: (lastPage, pages) => {
+      if (!lastPage?.results || lastPage.results.length < pageSize) return undefined;
+      return pages.length * pageSize;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+export const mapPagesToBasics = (
+  data?: InfiniteData<ApiResourceList, number>
+): BasicPokemon[] =>
+  data?.pages?.flatMap((p) => p.results.map((r) => ({
+    id: getId(r.url),
+    name: r.name,
+  }))) ?? [];
 
 // species by name (to get evolution_chain url)
 export const usePokemonSpeciesByName = (name: string) => {
@@ -35,13 +81,13 @@ function getPokemonIdFromUrl(url: string): number {
   return match ? parseInt(match[1], 10) : 0;
 }
 
-export const usePokemonList = (limit = 150, offset = 0) => {
+export const usePokemonList = (offset = 0, limit = 150) => {
   return useQuery({
-    queryKey: ["pokemon-list", limit, offset],
+    queryKey: ["pokemon-list", offset, limit],
     queryFn: async (): Promise<BasicPokemon[]> => {
-      const res = await PokeApiService.listPokemons(limit, offset);
-      return res.results.map((r: NamedAPIResource) => ({
-        id: getPokemonIdFromUrl(r.url),
+      const res = await PokeApiService.listPokemons(offset, limit); // 👈 order fixed
+      return res.results.map((r) => ({
+        id: Number(r.url.match(/\/pokemon\/(\d+)\/?$/)?.[1] || 0),
         name: r.name,
       }));
     },

@@ -1,11 +1,21 @@
 import PokemonList from "@/components/ui/pokemon-list";
-import { usePokemonList } from "@/hooks/use-pokemon";
+import { useInfinitePokemonList, mapPagesToBasics } from "@/hooks/use-pokemon"; // ✅ change
 import React from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function PokemonScreen() {
-  const { data: pokemonList, isLoading, error } = usePokemonList(150, 0);
+  // use infinite query (default page size = 150)
+  const {
+    data,
+    isLoading,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfinitePokemonList();
+
+  const flatData = mapPagesToBasics(data); // flatten pages -> BasicPokemon[]
 
   if (isLoading) {
     return (
@@ -24,16 +34,26 @@ export default function PokemonScreen() {
     );
   }
 
+  const loadMore = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>All Pokémon</Text>
-      <PokemonList data={pokemonList ?? []} />
+      <PokemonList
+        data={flatData}
+        onEndReached={loadMore}                 
+        isFetchingNextPage={isFetchingNextPage} 
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 12, backgroundColor: "#f0f8ff" },
+  container: { flex: 1, paddingHorizontal: 6, paddingVertical: 0, backgroundColor: "#f0f8ff" },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  title: { fontSize: 24, fontWeight: "bold", marginVertical: 16, marginLeft: 12, color: "#0E0940" },
+  title: { fontSize: 24, fontWeight: "bold", marginVertical: 12, marginLeft: 12, color: "#0E0940" },
 });
