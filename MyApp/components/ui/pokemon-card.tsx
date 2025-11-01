@@ -4,18 +4,18 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-    Modal,
-    Pressable,
-    Share,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Modal,
+  Pressable,
+  Share,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 interface PokemonCardProps {
   pokemon: { id: string | number; name: string };
-  onPress?: () => void; // optional; tapping the card can still open details
+  onPress?: () => void;
 }
 
 export default function PokemonCard({ pokemon, onPress }: PokemonCardProps) {
@@ -24,16 +24,12 @@ export default function PokemonCard({ pokemon, onPress }: PokemonCardProps) {
 
   const { data: isFav } = useIsFavorite(idNum);
   const toggleFavorite = useToggleFavorite();
-
   const [menuVisible, setMenuVisible] = useState(false);
 
   const openDetails = () => {
     setMenuVisible(false);
-    if (onPress) {
-      onPress();
-    } else {
-      router.push({ pathname: "/pokemon/[name]", params: { name: pokemon.name } });
-    }
+    if (onPress) onPress();
+    else router.push({ pathname: "/pokemon/[name]", params: { name: pokemon.name } });
   };
 
   const handleToggleFavorite = () => {
@@ -51,41 +47,38 @@ export default function PokemonCard({ pokemon, onPress }: PokemonCardProps) {
     try {
       await Share.share({
         message: `Check out ${capitalize(pokemon.name)}! #${String(idNum).padStart(3, "0")}`,
-        url: imageUrl, // iOS reads this; Android uses message contents
+        url: imageUrl,
         title: `Pokémon • ${capitalize(pokemon.name)}`,
       });
-    } catch {
-      // ignore
-    }
+    } catch {}
   };
 
   return (
     <>
-      <TouchableOpacity
-        style={styles.card}
-        onPress={onPress ?? openDetails}
-        activeOpacity={0.85}
-      >
-        {/* top: id badge */}
-        <View style={styles.topRow}>
+      <TouchableOpacity style={styles.card} onPress={openDetails} activeOpacity={0.9}>
+        {/* Top (pink) image section */}
+        <View style={styles.imageSection}>
           <View style={styles.idBadge}>
             <Text style={styles.idText}>{String(idNum).padStart(3, "0")}</Text>
           </View>
+
+          {/* Scaled sprite (visual scale only; layout unchanged) */}
+          <View style={styles.spriteWrap}>
+            <PokemonImage id={idNum} size={110} variant="pixel" pixelPerfect />
+          </View>
         </View>
 
-        {/* image */}
-        <View style={styles.imageWrap}>
-          <PokemonImage id={idNum} size={96} />
-        </View>
-
-        {/* name + 3-dots menu button */}
-        <View style={styles.bottomRow}>
+        {/* Bottom (white) info strip */}
+        <View style={styles.infoSection}>
           <Text numberOfLines={1} style={styles.name}>
             {capitalize(pokemon.name)}
           </Text>
 
           <Pressable
-            onPress={() => setMenuVisible(true)}
+            onPress={(e) => {
+              e.stopPropagation();
+              setMenuVisible(true);
+            }}
             hitSlop={12}
             style={styles.menuButton}
           >
@@ -94,7 +87,7 @@ export default function PokemonCard({ pokemon, onPress }: PokemonCardProps) {
         </View>
       </TouchableOpacity>
 
-      {/* Bottom-sheet like menu */}
+      {/* Bottom sheet */}
       <Modal
         visible={menuVisible}
         transparent
@@ -103,11 +96,7 @@ export default function PokemonCard({ pokemon, onPress }: PokemonCardProps) {
       >
         <Pressable style={styles.backdrop} onPress={() => setMenuVisible(false)} />
         <View style={styles.sheet}>
-          <MenuItem
-            icon="open-outline"
-            label="Open Pokémon"
-            onPress={openDetails}
-          />
+          <MenuItem icon="open-outline" label="Open Pokémon" onPress={openDetails} />
           <MenuItem
             icon={isFav ? "heart-dislike-outline" : "heart-outline"}
             label={isFav ? "Remove from favorites" : "Add to favorites"}
@@ -143,55 +132,69 @@ function capitalize(s: string) {
 }
 
 const styles = StyleSheet.create({
-    card: {
-    width: "100%",            // ✅ fill the cell’s width
+  card: {
     backgroundColor: "#fff",
     borderRadius: 16,
-    padding: 12,
-    minHeight: 190,
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 6,
     elevation: 4,
   },
-  topRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+
+  /* Top image section (pink) */
+  imageSection: {
+    backgroundColor: "#F6F6FF",
     alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 4,
+    paddingBottom: 5,
+    minHeight: 150,
   },
+
+  // 👇 visual up-scale that doesn't affect layout
+  spriteWrap: {
+    transform: [{ scale: 1.50 }], // adjust 1.12 – 1.25 to taste
+    overflow: "visible",
+  },
+
   idBadge: {
-    backgroundColor: "#A64AC9",
+    position: "absolute",
+    top: 10,
+    left: 10,
+    backgroundColor: "#7C5CFF",
     borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    zIndex: 1,
   },
-  idText: { color: "#fff", fontWeight: "bold", fontSize: 12 },
-  imageWrap: { alignItems: "center", justifyContent: "center", marginTop: 8 },
-  bottomRow: {
-    marginTop: 12,
+  idText: { color: "#fff", fontWeight: "bold", fontSize: 10 },
+
+  /* Bottom info strip (white) */
+  infoSection: {
+    backgroundColor: "#fff",
     flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 14,
   },
   name: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: "700",
     color: "#0E0940",
   },
   menuButton: {
-    height: 28,
-    width: 28,
+    height: 30,
+    width: 30,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 14,
+    borderRadius: 15,
   },
 
-  // modal sheet
-  backdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.25)",
-  },
+  /* Modal sheet */
+  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.25)" },
   sheet: {
     position: "absolute",
     left: 0,
@@ -212,15 +215,6 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: "#ddd",
   },
-  menuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-  },
-  menuText: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: "#0E0940",
-    fontWeight: "600",
-  },
+  menuItem: { flexDirection: "row", alignItems: "center", paddingVertical: 14 },
+  menuText: { marginLeft: 8, fontSize: 16, color: "#0E0940", fontWeight: "600" },
 });
