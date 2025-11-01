@@ -41,7 +41,7 @@ Each optional item is worth 1 extra point.
 - [ ] Dark mode support (making use of theming).
 - [ ] Pokémon list is paginated and infinite scroll is used.
 - [ ] Clean Typescript: no use of `any`, typecasting `as SomeType`, or TS ignore comments.
-- [ ] Pixel Perfect Design on either iOS or Android.
+- [-] Pixel Perfect Design on either iOS or Android.  == Chose Android, and i would say it is 95%
 - [ ] No bugs, console errors and use of console.log.
 - [ ] Added [localizations](https://docs.expo.dev/guides/localization/) for the app.
 - [ ] Adds Pokémon Battle Feature.
@@ -52,8 +52,12 @@ Each optional item is worth 1 extra point.
 
 
 #### NOTES FOR TEACHER ================================
+
+
+
 - in the About,Stats,Evolution section, for the selected pokemon I added extra padding to make it scrollable, even tho there is nothing there, like in the design to show scroll functionality of page
 
 - Honestly, I just pray it works for IOS as well, I tested on ios using a phone's friend only once (and was working), but that was during a previous version not the final one.
 
 - I focused mostly on the Android design from Figma (because couldn't test for ios xd), and there are no diferences for ios version , except the transparency that the top bar from the selected pokemon overview page has for ios, while on android it is not transparent.
+

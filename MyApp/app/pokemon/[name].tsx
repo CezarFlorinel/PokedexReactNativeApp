@@ -14,11 +14,11 @@ import {
   Image,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
   Dimensions,
+  Animated, // 👈 NEW
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import PagerView from "react-native-pager-view";
@@ -51,8 +51,6 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 const { height: SCREEN_H } = Dimensions.get("window");
-// A comfortable pager height that fills the screen under the header/hero.
-// Tweak if needed; pages themselves can still scroll.
 const PAGER_HEIGHT = Math.max(560, SCREEN_H * 0.8);
 
 export default function PokemonDetailScreen() {
@@ -108,12 +106,28 @@ export default function PokemonDetailScreen() {
     pagerRef.current?.setPage(TAB_TO_INDEX[next]);
   };
 
+  // ===== Scroll title reveal (Animated) =====
+  const scrollY = useRef(new Animated.Value(0)).current;
+  // Fade the title in between ~40-90px of scroll
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, 40, 90],
+    outputRange: [0, 0, 1],
+    extrapolate: "clamp",
+  });
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Outer scroll (for the overall page) with sticky top-bar */}
-      <ScrollView stickyHeaderIndices={[0]} contentContainerStyle={{ paddingBottom: 24 }}>
-        {/* Sticky header with platform-specific background:
-            iOS = frosted blur, Android = solid color */}
+      {/* Make the outer scroller animated so we can read scrollY */}
+      <Animated.ScrollView
+        stickyHeaderIndices={[0]}
+        contentContainerStyle={{ paddingBottom: 24 }}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
+      >
+        {/* ===== Sticky header with platform-specific background ===== */}
         <SafeAreaView edges={["top"]} style={styles.stickyHeader}>
           {Platform.OS === "ios" ? (
             <>
@@ -124,10 +138,12 @@ export default function PokemonDetailScreen() {
             <View style={styles.stickyTintAndroid} />
           )}
 
+          {/* Top bar buttons */}
           <View style={styles.topBar}>
             <Pressable style={styles.iconBtn} onPress={() => router.back()}>
               <Ionicons name="arrow-back" size={22} color="#0E0940" />
             </Pressable>
+
             <Pressable
               style={styles.iconBtn}
               onPress={() =>
@@ -146,6 +162,16 @@ export default function PokemonDetailScreen() {
               />
             </Pressable>
           </View>
+
+          {/* Centered title that fades in/out; pointerEvents=none so buttons stay clickable */}
+          <Animated.View
+            pointerEvents="none"
+            style={[styles.headerTitleWrap, { opacity: titleOpacity }]}
+          >
+            <Text numberOfLines={1} style={styles.headerTitleText}>
+              {capitalize(pokemon.name)}
+            </Text>
+          </Animated.View>
         </SafeAreaView>
 
         {/* Non-sticky header content */}
@@ -181,7 +207,6 @@ export default function PokemonDetailScreen() {
             <Tab label="Evolution" active={tab === "evolution"} onPress={() => goToTab("evolution")} />
           </View>
 
-          {/* Fixed-height pager; each page has its own vertical ScrollView (nested). */}
           <PagerView
             ref={pagerRef}
             style={{ height: PAGER_HEIGHT }}
@@ -190,7 +215,7 @@ export default function PokemonDetailScreen() {
           >
             {/* About */}
             <View key="about" style={{ flex: 1 }}>
-              <ScrollView
+              <Animated.ScrollView
                 contentContainerStyle={{ paddingBottom: 24 }}
                 nestedScrollEnabled
                 showsVerticalScrollIndicator={false}
@@ -212,12 +237,12 @@ export default function PokemonDetailScreen() {
                       .join(", ")}
                   />
                 </View>
-              </ScrollView>
+              </Animated.ScrollView>
             </View>
 
             {/* Stats */}
             <View key="stats" style={{ flex: 1 }}>
-              <ScrollView
+              <Animated.ScrollView
                 contentContainerStyle={{ paddingBottom: 24 }}
                 nestedScrollEnabled
                 showsVerticalScrollIndicator={false}
@@ -232,17 +257,17 @@ export default function PokemonDetailScreen() {
                     />
                   ))}
                 </View>
-              </ScrollView>
+              </Animated.ScrollView>
             </View>
 
             {/* Evolution */}
             <View key="evolution" style={{ flex: 1 }}>
-              <ScrollView
+              <Animated.ScrollView
                 contentContainerStyle={{ paddingBottom: 24 }}
                 nestedScrollEnabled
                 showsVerticalScrollIndicator={false}
               >
-                <View style={styles.card /* frame padding */}>
+                <View style={styles.card}>
                   {evolutions.length === 0 ? (
                     <Text style={{ color: "#666" }}>This Pokémon does not evolve.</Text>
                   ) : (
@@ -272,11 +297,11 @@ export default function PokemonDetailScreen() {
                     ))
                   )}
                 </View>
-              </ScrollView>
+              </Animated.ScrollView>
             </View>
           </PagerView>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
     </SafeAreaView>
   );
 }
@@ -362,7 +387,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     paddingHorizontal: 16,
   },
-  // iOS: subtle frosted look on top of blur
+  // iOS: subtle frosted over blur
   stickyTintIOS: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(237, 246, 255, 0.30)",
@@ -386,6 +411,21 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  // Centered title inside sticky header; appears on scroll
+  headerTitleWrap: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    bottom: 8, // sit near the buttons row
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTitleText: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0E0940",
   },
 
   headerContainer: {
