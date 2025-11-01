@@ -12,16 +12,43 @@ import React, { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  LayoutChangeEvent,
+  Platform,
   Pressable,
-  ScrollView, StyleSheet, Text, View
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import PagerView from "react-native-pager-view";
+import { BlurView } from "expo-blur";
 
 type TabKey = "about" | "stats" | "evolution";
-
 const TAB_TO_INDEX: Record<TabKey, number> = { about: 0, stats: 1, evolution: 2 };
 const INDEX_TO_TAB: TabKey[] = ["about", "stats", "evolution"];
+const BLUE_BG = "#edf6ff";
+
+const TYPE_COLORS: Record<string, string> = {
+  normal: "#A8A77A",
+  fire: "#EE8130",
+  water: "#6390F0",
+  electric: "#F7D02C",
+  grass: "#7AC74C",
+  ice: "#96D9D6",
+  fighting: "#C22E28",
+  poison: "#A33EA1",
+  ground: "#E2BF65",
+  flying: "#A98FF3",
+  psychic: "#F95587",
+  bug: "#A6B91A",
+  rock: "#B6A136",
+  ghost: "#735797",
+  dragon: "#6F35FC",
+  dark: "#705746",
+  steel: "#B7B7CE",
+  fairy: "#D685AD",
+};
 
 export default function PokemonDetailScreen() {
   const { name } = useLocalSearchParams<{ name: string }>();
@@ -35,37 +62,35 @@ export default function PokemonDetailScreen() {
 
   const [tab, setTab] = useState<TabKey>("about");
   const pagerRef = useRef<PagerView>(null);
-  
+
+  // dynamic height per page for PagerView
+  const [pageHeights, setPageHeights] = useState<number[]>([]);
+  const [pagerHeight, setPagerHeight] = useState<number>(300);
+
+  const onPageLayout =
+    (index: number) =>
+    (e: LayoutChangeEvent): void => {
+      const h = e.nativeEvent.layout.height;
+      setPageHeights((prev) => {
+        const next = [...prev];
+        next[index] = h;
+        return next;
+      });
+      if (TAB_TO_INDEX[tab] === index) setPagerHeight(h);
+    };
+
   const goToTab = (next: TabKey) => {
+    const idx = TAB_TO_INDEX[next];
     setTab(next);
-    pagerRef.current?.setPage(TAB_TO_INDEX[next]);
+    pagerRef.current?.setPage(idx);
+    const measured = pageHeights[idx];
+    if (measured) setPagerHeight(measured);
   };
 
-  // favorite state
+  // favorites
   const idNum = pokemon?.id ?? 0;
   const { data: isFav } = useIsFavorite(idNum);
   const toggleFavorite = useToggleFavorite();
-
-  const TYPE_COLORS: Record<string, string> = { // just use this made by chatgpt, looks good
-    normal: "#A8A77A",
-    fire: "#EE8130",
-    water: "#6390F0",
-    electric: "#F7D02C",
-    grass: "#7AC74C",
-    ice: "#96D9D6",
-    fighting: "#C22E28",
-    poison: "#A33EA1",
-    ground: "#E2BF65",
-    flying: "#A98FF3",
-    psychic: "#F95587",
-    bug: "#A6B91A",
-    rock: "#B6A136",
-    ghost: "#735797",
-    dragon: "#6F35FC",
-    dark: "#705746",
-    steel: "#B7B7CE",
-    fairy: "#D685AD",
-  };
 
   function getTypeColor(type: string) {
     return TYPE_COLORS[type.toLowerCase()] ?? "#888";
@@ -95,14 +120,23 @@ export default function PokemonDetailScreen() {
   const title = capitalize(pokemon.name);
   const idPadded = String(pokemon.id).padStart(3, "0");
   const imageUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemon.id}.png`;
-
-  // Evolution list (flatten chain)
   const evolutions = useMemo(() => flattenEvolution(chain?.chain), [chain]);
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* ===== Header & hero same as before ===== */}
-      <ScrollView contentContainerStyle={{ paddingBottom: 0 }} scrollEnabled={false}>
-        <View style={styles.headerContainer}>
+      {/* One vertical scroller; index 0 is sticky (the top bar). */}
+      <ScrollView stickyHeaderIndices={[0]} contentContainerStyle={{ paddingBottom: 24 }}>
+        {/* ===== Sticky header: Blur on iOS, solid tint on Android ===== */}
+        <SafeAreaView edges={["top"]} style={styles.stickyHeader}>
+          {Platform.OS === "ios" ? (
+            <>
+              <BlurView tint="light" intensity={72} style={StyleSheet.absoluteFill} />
+              <View style={styles.stickyTintIOS} pointerEvents="none" />
+            </>
+          ) : (
+            <View style={styles.stickyTintAndroid} pointerEvents="none" />
+          )}
+
           <View style={styles.topBar}>
             <Pressable style={styles.iconBtn} onPress={() => router.back()}>
               <Ionicons name="arrow-back" size={22} color="#0E0940" />
@@ -125,13 +159,19 @@ export default function PokemonDetailScreen() {
               />
             </Pressable>
           </View>
+        </SafeAreaView>
 
+        {/* Non-sticky content below the bar */}
+        <View style={styles.headerContainer}>
           <View style={styles.nameRow}>
-            <Text numberOfLines={1} style={styles.pokemonName}>{title}</Text>
+            <Text numberOfLines={1} style={styles.pokemonName}>
+              {title}
+            </Text>
             <Text style={styles.pokemonId}>{idPadded}</Text>
           </View>
         </View>
 
+        {/* Types */}
         <View style={styles.typesRow}>
           {pokemon.types.map((t, i) => (
             <View key={i} style={styles.typeBadge}>
@@ -141,80 +181,93 @@ export default function PokemonDetailScreen() {
           ))}
         </View>
 
+        {/* Hero image */}
         <View style={styles.heroImageWrap}>
           <PokemonImage id={pokemon.id} size={220} />
         </View>
 
-        {/* ===== White panel with tabs ===== */}
+        {/* White panel with tabs + pager */}
         <View style={styles.panel}>
-          {/* Tabs row */}
           <View style={styles.tabsRow}>
-            <Tab label="About"     active={tab === "about"}     onPress={() => goToTab("about")} />
-            <Tab label="Stats"     active={tab === "stats"}     onPress={() => goToTab("stats")} />
-            <Tab label="Evolution" active={tab === "evolution"} onPress={() => goToTab("evolution")} />
+            <Tab label="About" active={tab === "about"} onPress={() => goToTab("about")} />
+            <Tab label="Stats" active={tab === "stats"} onPress={() => goToTab("stats")} />
+            <Tab
+              label="Evolution"
+              active={tab === "evolution"}
+              onPress={() => goToTab("evolution")}
+            />
           </View>
 
-          {/* 👇 PagerView: swipe horizontally between pages */}
           <PagerView
             ref={pagerRef}
-            style={{ height: undefined, minHeight: 300 }}   // height is required; min keeps it flexible
+            style={{ height: pagerHeight }}
             initialPage={TAB_TO_INDEX[tab]}
             onPageSelected={(e) => {
               const index = e.nativeEvent.position;
               setTab(INDEX_TO_TAB[index]);
+              setPagerHeight(pageHeights[index] ?? 300);
             }}
           >
             {/* Page 0: About */}
-            <View key="about">
-              <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-                <View style={styles.card}>
-                  <InfoRow label="Name"      value={title} />
-                  <InfoRow label="ID"        value={idPadded} />
-                  <InfoRow label="Base"      value={`${pokemon.base_experience ?? "-"} XP`} />
-                  <InfoRow label="Weight"    value={`${(pokemon.weight ?? 0) / 10} kg`} />
-                  <InfoRow label="Height"    value={`${(pokemon.height ?? 0) / 10} m`} />
-                  <InfoRow label="Types"     value={pokemon.types.map(t => capitalize(t.type.name)).join(", ")} />
-                  <InfoRow label="Abilities" value={pokemon.abilities.map(a => capitalize(a.ability.name.replace("-", " "))).join(", ")} />
-                </View>
-              </ScrollView>
+            <View key="about" onLayout={onPageLayout(0)}>
+              <View style={styles.card}>
+                <InfoRow label="Name" value={title} />
+                <InfoRow label="ID" value={idPadded} />
+                <InfoRow label="Base" value={`${pokemon.base_experience ?? "-"} XP`} />
+                <InfoRow label="Weight" value={`${(pokemon.weight ?? 0) / 10} kg`} />
+                <InfoRow label="Height" value={`${(pokemon.height ?? 0) / 10} m`} />
+                <InfoRow
+                  label="Types"
+                  value={pokemon.types.map((t) => capitalize(t.type.name)).join(", ")}
+                />
+                <InfoRow
+                  label="Abilities"
+                  value={pokemon.abilities
+                    .map((a) => capitalize(a.ability.name.replace("-", " ")))
+                    .join(", ")}
+                />
+              </View>
             </View>
 
             {/* Page 1: Stats */}
-            <View key="stats">
-              <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-                <View style={styles.card}>
-                  {pokemon.stats.map((s, i) => (
-                    <StatRow key={i} label={formatStatName(s.stat.name)} value={s.base_stat} max={200} />
-                  ))}
-                </View>
-              </ScrollView>
+            <View key="stats" onLayout={onPageLayout(1)}>
+              <View style={styles.card}>
+                {pokemon.stats.map((s, i) => (
+                  <StatRow
+                    key={i}
+                    label={formatStatName(s.stat.name)}
+                    value={s.base_stat}
+                    max={200}
+                  />
+                ))}
+              </View>
             </View>
 
             {/* Page 2: Evolution */}
-            <View key="evolution">
-              <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
-                <View style={[styles.card, { gap: 12 }]}>
-                  {evolutions.length === 0 ? (
-                    <Text style={{ color: "#666" }}>This Pokémon does not evolve.</Text>
-                  ) : (
-                    evolutions.map((evo) => (
-                      <View key={evo.id} style={styles.evoRow}>
-                        <View style={styles.evoLeft}>
-                          <View style={styles.evoIdBadge}>
-                            <Text style={styles.evoIdText}>{String(evo.id).padStart(3, "0")}</Text>
-                          </View>
-                          <Image
-                            source={{ uri: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${evo.id}.png` }}
-                            style={{ width: 40, height: 40 }}
-                            resizeMode="contain"
-                          />
+            <View key="evolution" onLayout={onPageLayout(2)}>
+              <View style={[styles.card, { gap: 12 }]}>
+                {evolutions.length === 0 ? (
+                  <Text style={{ color: "#666" }}>This Pokémon does not evolve.</Text>
+                ) : (
+                  evolutions.map((evo) => (
+                    <View key={evo.id} style={styles.evoRow}>
+                      <View style={styles.evoLeft}>
+                        <View style={styles.evoIdBadge}>
+                          <Text style={styles.evoIdText}>{String(evo.id).padStart(3, "0")}</Text>
                         </View>
-                        <Text style={styles.evoName}>{capitalize(evo.name)}</Text>
+                        <Image
+                          source={{
+                            uri: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${evo.id}.png`,
+                          }}
+                          style={{ width: 40, height: 40 }}
+                          resizeMode="contain"
+                        />
                       </View>
-                    ))
-                  )}
-                </View>
-              </ScrollView>
+                      <Text style={styles.evoName}>{capitalize(evo.name)}</Text>
+                    </View>
+                  ))
+                )}
+              </View>
             </View>
           </PagerView>
         </View>
@@ -225,7 +278,15 @@ export default function PokemonDetailScreen() {
 
 /* ---------- Small components ---------- */
 
-function Tab({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+function Tab({
+  label,
+  active,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+}) {
   return (
     <Pressable onPress={onPress} style={styles.tabBtn}>
       <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
@@ -287,23 +348,37 @@ function formatStatName(s: string) {
 
 /* ---------- Styles ---------- */
 
-const BLUE_BG = "#edf6ff";
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BLUE_BG },
 
-  headerContainer: {
-    backgroundColor: BLUE_BG,
+  // Sticky header container (content inside stays sharp)
+  stickyHeader: {
+    position: "relative",
+    backgroundColor: "transparent",
     paddingHorizontal: 16,
     paddingTop: 8,
+    paddingBottom: 8,
+    zIndex: 10,
+    overflow: "hidden",
   },
 
-  // REPLACES actionsRow
+  // iOS extra white wash over blur for “glass” look
+  stickyTintIOS: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(255,255,255,0.14)",
+  },
+
+  // Android solid/tinted background (no blur)
+  stickyTintAndroid: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(237, 246, 255, 255)", // BLUE_BG with high alpha
+  },
+
   topBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-
   iconBtn: {
     width: 36,
     height: 36,
@@ -312,42 +387,35 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
+  headerContainer: {
+    backgroundColor: BLUE_BG,
+    paddingHorizontal: 16,
+  },
+
   typesRow: {
     flexDirection: "row",
     gap: 8,
     paddingHorizontal: 16,
     paddingTop: 8,
   },
-
   typeBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    backgroundColor: "#E6ECF6", // subtle pill background
+    backgroundColor: "#E6ECF6",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
   },
+  typeDot: { width: 12, height: 12, borderRadius: 6 },
+  typeText: { color: "#0E0940", fontWeight: "800" },
 
-  typeDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-
-  typeText: {
-    color: "#0E0940",
-    fontWeight: "800",
-  },
-
-  // REPLACES header
   nameRow: {
     marginTop: 8,
     flexDirection: "row",
     alignItems: "baseline",
     justifyContent: "space-between",
   },
-
   pokemonName: {
     flexShrink: 1,
     fontSize: 32,
@@ -356,34 +424,8 @@ const styles = StyleSheet.create({
     textTransform: "capitalize",
     paddingRight: 12,
   },
-
-  // let content stretch so the panel sits right under the image
-  scrollContent: { paddingBottom: 24 },
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-  },
-  actionsRow: {
-    paddingHorizontal: 12,
-    paddingTop: 8,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-
-  header: {
-    flexDirection: "row",
-    alignItems: "baseline",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingTop: 8,
-  },
-
   pokemonId: { fontSize: 32, color: "#999", fontWeight: "300" },
 
-  // keep hero on blue bg
   heroImageWrap: {
     backgroundColor: BLUE_BG,
     marginTop: 12,
@@ -391,14 +433,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  /** White panel that starts below the image */
   panel: {
     backgroundColor: "#fff",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingTop: 12,
-    paddingBottom: 8,
-    // Pull the white panel slightly up to tuck under the image for a seamless look
+    paddingBottom: 16,
     marginTop: -8,
   },
 
@@ -419,7 +459,6 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
 
-  // inner cards remain white
   card: {
     marginTop: 12,
     marginHorizontal: 16,
@@ -470,6 +509,5 @@ const styles = StyleSheet.create({
   evoIdText: { color: "#fff", fontWeight: "bold", fontSize: 12 },
   evoName: { fontSize: 16, fontWeight: "700", color: "#0E0940" },
 
-
+  center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 20 },
 });
-

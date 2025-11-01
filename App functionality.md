@@ -49,3 +49,11 @@ Each optional item is worth 1 extra point.
 
 - [ ] Unchecked
 - [x] Checked
+
+
+#### NOTES FOR TEACHER ================================
+- in the About,Stats,Evolution section, for the selected pokemon I added extra padding to make it scrollable, even tho there is nothing there, like in the design to show scroll functionality of page
+
+- Honestly, I just pray it works for IOS as well, I tested on ios using a phone's friend only once (and was working), but that was during a previous version not the final one.
+
+- I focused mostly on the Android design from Figma (because couldn't test for ios xd), and there are no diferences for ios version , except the transparency that the top bar from the selected pokemon overview page has for ios, while on android it is not transparent.
