@@ -1,6 +1,7 @@
+import AppText from "@/components/ui/app-text";
 import PokemonList from "@/components/ui/pokemon-list";
 import { useFavorites } from "@/hooks/use-favorites";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function FavoritesScreen() {
@@ -10,7 +11,7 @@ export default function FavoritesScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#EF5350" />
-        <Text>Loading favorites…</Text>
+        <AppText>Loading favorites…</AppText>
       </View>
     );
   }
@@ -18,7 +19,7 @@ export default function FavoritesScreen() {
   if (error) {
     return (
       <View style={styles.center}>
-        <Text>Failed to load favorites. Try again later.</Text>
+        <AppText>Failed to load favorites. Try again later.</AppText>
       </View>
     );
   }
@@ -31,12 +32,12 @@ export default function FavoritesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>My favorites</Text>
+      <AppText style={styles.title}>My favorites</AppText>
 
       {gridData.length === 0 ? (
         <View style={styles.center}>
-          <Text style={styles.emptyText}>No favorites yet!</Text>
-          <Text style={styles.subText}>Tap the heart on any Pokémon to save it.</Text>
+          <AppText style={styles.emptyText}>No favorites yet!</AppText>
+          <AppText style={styles.subText}>Tap the heart on any Pokémon to save it.</AppText>
         </View>
       ) : (
         <PokemonList

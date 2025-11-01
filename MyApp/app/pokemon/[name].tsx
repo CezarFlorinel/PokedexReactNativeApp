@@ -1,4 +1,5 @@
 import { PokemonImage } from "@/components/ui/pokemon-image";
+import AppText from "@/components/ui/app-text"
 import { useIsFavorite, useToggleFavorite } from "@/hooks/use-favorites";
 import {
   idFromUrl,
@@ -15,7 +16,6 @@ import {
   Platform,
   Pressable,
   StyleSheet,
-  Text,
   View,
   Dimensions,
   Animated,
@@ -99,7 +99,7 @@ export default function PokemonDetailScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#5631E8" />
-          <Text style={{ marginTop: 8, color: "#5631E8" }}>Loading Pokémon…</Text>
+          <AppText style={{ marginTop: 8, color: "#5631E8" }}>Loading Pokémon…</AppText>
         </View>
       </SafeAreaView>
     );
@@ -109,7 +109,7 @@ export default function PokemonDetailScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
-          <Text style={{ color: "#666" }}>Pokémon not found.</Text>
+          <AppText style={{ color: "#666" }}>Pokémon not found.</AppText>
         </View>
       </SafeAreaView>
     );
@@ -182,9 +182,9 @@ export default function PokemonDetailScreen() {
             pointerEvents="none"
             style={[styles.headerTitleWrap, { opacity: titleOpacity }]}
           >
-            <Text numberOfLines={1} style={styles.headerTitleText}>
+            <AppText numberOfLines={1} style={styles.headerTitleText}>
               {title}
-            </Text>
+            </AppText>
           </Animated.View>
         </View>
       </View>
@@ -202,10 +202,10 @@ export default function PokemonDetailScreen() {
         {/* Header content (below absolute header) */}
         <View style={styles.headerContainer}>
           <View style={styles.nameRow}>
-            <Text numberOfLines={1} style={styles.pokemonName}>
+            <AppText numberOfLines={1} style={styles.pokemonName}>
               {title}
-            </Text>
-            <Text style={styles.pokemonId}>{idPadded}</Text>
+            </AppText>
+            <AppText style={styles.pokemonId}>{idPadded}</AppText>
           </View>
         </View>
 
@@ -214,7 +214,7 @@ export default function PokemonDetailScreen() {
           {pokemon.types.map((t, i) => (
             <View key={i} style={styles.typeBadge}>
               <View style={[styles.typeDot, { backgroundColor: getTypeColor(t.type.name) }]} />
-              <Text style={styles.typeText}>{capitalize(t.type.name)}</Text>
+              <AppText style={styles.typeText}>{capitalize(t.type.name)}</AppText>
             </View>
           ))}
         </View>
@@ -289,22 +289,22 @@ export default function PokemonDetailScreen() {
             <View key="evolution" style={{ flex: 1 }}>
               {chainId == null ? (
                 <View style={[styles.card, { alignItems: "center" }]}>
-                  <Text style={{ color: "#666" }}>No evolution data for this species.</Text>
+                  <AppText style={{ color: "#666" }}>No evolution data for this species.</AppText>
                 </View>
               ) : isChainLoading ? (
                 <View style={[styles.card, { alignItems: "center" }]}>
                   <ActivityIndicator size="small" color="#5631E8" />
-                  <Text style={{ marginTop: 8, color: "#5631E8" }}>
+                  <AppText style={{ marginTop: 8, color: "#5631E8" }}>
                     Loading evolution chain…
-                  </Text>
+                  </AppText>
                 </View>
               ) : isChainError ? (
                 <View style={[styles.card, { alignItems: "center" }]}>
-                  <Text style={{ color: "#D14343", fontWeight: "700" }}>
+                  <AppText style={{ color: "#D14343", fontWeight: "700" }}>
                     Could not load evolution chain.
-                  </Text>
+                  </AppText>
                   {!!chainError?.message && (
-                    <Text style={{ color: "#999", marginTop: 4 }}>{chainError.message}</Text>
+                    <AppText style={{ color: "#999", marginTop: 4 }}>{chainError.message}</AppText>
                   )}
                 </View>
               ) : (
@@ -315,7 +315,7 @@ export default function PokemonDetailScreen() {
                 >
                   <View style={styles.card}>
                     {(!evolutions || evolutions.length === 0) ? (
-                      <Text style={{ color: "#666" }}>This Pokémon does not evolve.</Text>
+                      <AppText style={{ color: "#666" }}>This Pokémon does not evolve.</AppText>
                     ) : (
                       evolutions.map((evo, idx) => (
                         <View key={evo.id}>
@@ -332,11 +332,11 @@ export default function PokemonDetailScreen() {
                             </View>
                             <View style={styles.evoRightPane}>
                               <View style={styles.evoIdBadge}>
-                                <Text style={styles.evoIdText}>
+                                <AppText style={styles.evoIdText}>
                                   {String(evo.id).padStart(3, "0")}
-                                </Text>
+                                </AppText>
                               </View>
-                              <Text style={styles.evoName}>{capitalize(evo.name)}</Text>
+                              <AppText style={styles.evoName}>{capitalize(evo.name)}</AppText>
                             </View>
                           </View>
                         </View>
@@ -366,7 +366,7 @@ function Tab({
 }) {
   return (
     <Pressable onPress={onPress} style={styles.tabBtn}>
-      <Text style={[styles.tabText, active && styles.tabTextActive]}>{label}</Text>
+      <AppText style={[styles.tabText, active && styles.tabTextActive]}>{label}</AppText>
       {active && <View style={styles.tabUnderline} />}
     </Pressable>
   );
@@ -375,8 +375,8 @@ function Tab({
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.infoRow}>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
+      <AppText style={styles.infoLabel}>{label}</AppText>
+      <AppText style={styles.infoValue}>{value}</AppText>
     </View>
   );
 }
@@ -386,8 +386,8 @@ function StatRow({ label, value, max }: { label: string; value: number; max: num
   return (
     <View style={{ marginBottom: 14 }}>
       <View style={styles.statRow}>
-        <Text style={styles.statLabel}>{label}</Text>
-        <Text style={styles.statValue}>{value}</Text>
+        <AppText style={styles.statLabel}>{label}</AppText>
+        <AppText style={styles.statValue}>{value}</AppText>
       </View>
       <View style={styles.progressTrack}>
         <View style={[styles.progressFill, { width: `${pct * 100}%` }]} />

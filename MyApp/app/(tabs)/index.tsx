@@ -6,8 +6,9 @@ import {
   usePokemonIndex
 } from "@/hooks/use-pokemon";
 import React, { useMemo, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, StyleSheet,  View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AppText from "@/components/ui/app-text";
 
 export default function PokemonScreen() {
   const {
@@ -35,7 +36,7 @@ export default function PokemonScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#EF5350" />
-        <Text>Loading Pokémon…</Text>
+        <AppText>Loading Pokémon…</AppText>
       </View>
     );
   }
@@ -43,7 +44,7 @@ export default function PokemonScreen() {
   if (error) {
     return (
       <View style={styles.center}>
-        <Text>Failed to load. Try again later.</Text>
+        <AppText>Failed to load. Try again later.</AppText>
       </View>
     );
   }
@@ -58,7 +59,7 @@ export default function PokemonScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>All Pokémon</Text>
+      <AppText style={styles.title}>All Pokémon</AppText>
 
       <View style={styles.searchWrap}>
         <SearchBar value={query} onChangeText={setQuery} onClear={() => setQuery("")} />
@@ -67,7 +68,7 @@ export default function PokemonScreen() {
       {showIndexSpinner ? (
         <View style={styles.center}>
           <ActivityIndicator />
-          <Text>Searching entire Pokédex…</Text>
+          <AppText>Searching entire Pokédex…</AppText>
         </View>
       ) : (
         <PokemonList
@@ -79,7 +80,7 @@ export default function PokemonScreen() {
 
       {query.length > 0 && !indexLoading && filtered.length === 0 && (
         <View style={styles.emptyWrap}>
-          <Text style={styles.emptyText}>No Pokémon match “{query}”.</Text>
+          <AppText style={styles.emptyText}>No Pokémon match “{query}”.</AppText>
         </View>
       )}
     </SafeAreaView>

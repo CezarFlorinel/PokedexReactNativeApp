@@ -25,13 +25,13 @@
     - [x] Fetching Pokémon evolution chain.
 
 #### Project setup
-- [ ] Tanstack Query for API calls.
-- [ ] Expo Router for navigation.
-- [x] SQLite for local storage.
-- [ ] Uses Typescript with no TS errors.
+- [x] Tanstack Query for API calls.
+- [x] Expo Router for navigation.
+- [x] SQLite for local storage.s
+- [x] Uses Typescript with no TS errors.
 - [ ] Uses ESLint with no ESLint errors. (ideally use [React Compiler Linter](https://docs.expo.dev/guides/react-compiler/#enabling-the-linter))
 - [x] Uses Separation of Concerns (determine a project structure that follows this principle).
-- [ ] Expo Font is used to implement [the font](./assets/fonts.zip).
+- [x] Expo Font is used to implement [the font](./assets/fonts.zip).
 
 
 ### Optional items

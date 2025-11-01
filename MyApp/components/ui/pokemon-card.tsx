@@ -3,12 +3,12 @@ import { useIsFavorite, useToggleFavorite } from "@/hooks/use-favorites";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
+import AppText from "@/components/ui/app-text"
 import {
   Modal,
   Pressable,
   Share,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -59,7 +59,7 @@ export default function PokemonCard({ pokemon, onPress }: PokemonCardProps) {
         {/* Top (pink) image section */}
         <View style={styles.imageSection}>
           <View style={styles.idBadge}>
-            <Text style={styles.idText}>{String(idNum).padStart(3, "0")}</Text>
+            <AppText style={styles.idText}>{String(idNum).padStart(3, "0")}</AppText>
           </View>
 
           {/* Scaled sprite (visual scale only; layout unchanged) */}
@@ -70,9 +70,9 @@ export default function PokemonCard({ pokemon, onPress }: PokemonCardProps) {
 
         {/* Bottom (white) info strip */}
         <View style={styles.infoSection}>
-          <Text numberOfLines={1} style={styles.name}>
+          <AppText numberOfLines={1} style={styles.name}>
             {capitalize(pokemon.name)}
-          </Text>
+          </AppText>
 
           <Pressable
             onPress={(e) => {
@@ -122,7 +122,7 @@ function MenuItem({
   return (
     <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.8}>
       <Ionicons name={icon} size={22} color="#0E0940" style={{ width: 26 }} />
-      <Text style={styles.menuText}>{label}</Text>
+      <AppText style={styles.menuText}>{label}</AppText>
     </TouchableOpacity>
   );
 }
