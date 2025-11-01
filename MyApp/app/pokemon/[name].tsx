@@ -69,15 +69,15 @@ export default function PokemonDetailScreen() {
 
   const onPageLayout =
     (index: number) =>
-    (e: LayoutChangeEvent): void => {
-      const h = e.nativeEvent.layout.height;
-      setPageHeights((prev) => {
-        const next = [...prev];
-        next[index] = h;
-        return next;
-      });
-      if (TAB_TO_INDEX[tab] === index) setPagerHeight(h);
-    };
+      (e: LayoutChangeEvent): void => {
+        const h = e.nativeEvent.layout.height;
+        setPageHeights((prev) => {
+          const next = [...prev];
+          next[index] = h;
+          return next;
+        });
+        if (TAB_TO_INDEX[tab] === index) setPagerHeight(h);
+      };
 
   const goToTab = (next: TabKey) => {
     const idx = TAB_TO_INDEX[next];
@@ -245,30 +245,42 @@ export default function PokemonDetailScreen() {
 
             {/* Page 2: Evolution */}
             <View key="evolution" onLayout={onPageLayout(2)}>
-              <View style={[styles.card, { gap: 12 }]}>
+              <View style={styles.card /* container padding frame */}>
                 {evolutions.length === 0 ? (
                   <Text style={{ color: "#666" }}>This Pokémon does not evolve.</Text>
                 ) : (
-                  evolutions.map((evo) => (
-                    <View key={evo.id} style={styles.evoRow}>
-                      <View style={styles.evoLeft}>
-                        <View style={styles.evoIdBadge}>
-                          <Text style={styles.evoIdText}>{String(evo.id).padStart(3, "0")}</Text>
+                  evolutions.map((evo, idx) => (
+                    <View key={evo.id}>
+                      {/* connector between cards */}
+                      {idx > 0 && <View style={styles.evoConnector} />}
+
+                      {/* evo card */}
+                      <View style={styles.evoCard}>
+                        {/* left pink pane with sprite */}
+                        <View style={styles.evoLeftPane}>
+                          <Image
+                            source={{
+                              uri: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${evo.id}.png`,
+                            }}
+                            style={styles.evoImage}
+                            resizeMode="contain"
+                          />
                         </View>
-                        <Image
-                          source={{
-                            uri: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${evo.id}.png`,
-                          }}
-                          style={{ width: 40, height: 40 }}
-                          resizeMode="contain"
-                        />
+
+                        {/* right white pane with id badge + name */}
+                        <View style={styles.evoRightPane}>
+                          <View style={styles.evoIdBadge}>
+                            <Text style={styles.evoIdText}>{String(evo.id).padStart(3, "0")}</Text>
+                          </View>
+                          <Text style={styles.evoName}>{capitalize(evo.name)}</Text>
+                        </View>
                       </View>
-                      <Text style={styles.evoName}>{capitalize(evo.name)}</Text>
                     </View>
                   ))
                 )}
               </View>
             </View>
+
           </PagerView>
         </View>
       </ScrollView>
@@ -492,22 +504,73 @@ const styles = StyleSheet.create({
   },
   progressFill: { height: "100%", backgroundColor: "#5631E8" },
 
-  evoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F8F8FF",
-    padding: 12,
-    borderRadius: 12,
-  },
-  evoLeft: { flexDirection: "row", alignItems: "center", gap: 8, width: 90 },
-  evoIdBadge: {
-    backgroundColor: "#A64AC9",
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  evoIdText: { color: "#fff", fontWeight: "bold", fontSize: 12 },
-  evoName: { fontSize: 16, fontWeight: "700", color: "#0E0940" },
+evoConnector: {
+  height: 18,
+  alignSelf: "flex-start",
+  borderLeftWidth: 2,
+  borderColor: "#E5D9FF",     // soft lilac
+  borderStyle: "dashed",
+  marginBottom: 10,
+  marginLeft: 38,
+},
+
+evoCard: {
+  flexDirection: "row",
+  backgroundColor: "#fff",
+  borderRadius: 16,
+  overflow: "hidden",
+
+  // shadow
+  shadowColor: "#000",
+  shadowOpacity: 0.08,
+  shadowOffset: { width: 0, height: 6 },
+  shadowRadius: 12,
+  elevation: 6,
+
+  marginBottom: 14,
+},
+
+evoLeftPane: {
+  width: 76,
+  backgroundColor: "#F6F6FF", // pink/lilac strip
+  justifyContent: "center",
+  alignItems: "center",
+  paddingVertical: 12,
+},
+
+evoImage: {
+  width: 50,
+  height: 50,
+},
+
+evoRightPane: {
+  flex: 1,
+  backgroundColor: "#fff",
+  paddingVertical: 14,
+  paddingHorizontal: 16,
+  justifyContent: "center",
+},
+
+evoIdBadge: {
+  alignSelf: "flex-start",
+  backgroundColor: "#7C5CFF", // purple pill
+  paddingHorizontal: 8,
+  paddingVertical: 4,
+  borderRadius: 8,
+  marginBottom: 8,
+},
+
+evoIdText: {
+  color: "#fff",
+  fontWeight: "700",
+  fontSize: 12,
+},
+
+evoName: {
+  fontSize: 18,
+  fontWeight: "800",
+  color: "#0E0940",
+},
 
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 20 },
 });
