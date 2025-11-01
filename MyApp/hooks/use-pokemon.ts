@@ -1,7 +1,6 @@
 import { EvolutionApiService, PokeApiService } from "@/services/pokemon-api";
-import { InfiniteData, useQuery } from "@tanstack/react-query";
+import { InfiniteData, useQuery,useInfiniteQuery } from "@tanstack/react-query";
 import { NamedAPIResource } from "pokenode-ts";
-import { useInfiniteQuery } from "@tanstack/react-query";
 
 // type for Pokémon with ID
 export type PokemonWithId = NamedAPIResource & {
@@ -77,11 +76,6 @@ export const useEvolutionChain = (chainId?: number) => {
   });
 };
 
-// hook for fetching Pokémon list
-function getPokemonIdFromUrl(url: string): number {
-  const match = url.match(/\/pokemon\/(\d+)\/?$/);
-  return match ? parseInt(match[1], 10) : 0;
-}
 
 export const usePokemonList = (offset = 0, limit = 150) => {
   return useQuery({

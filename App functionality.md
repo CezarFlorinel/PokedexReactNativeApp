@@ -29,7 +29,7 @@
 - [x] Expo Router for navigation.
 - [x] SQLite for local storage.s
 - [x] Uses Typescript with no TS errors.
-- [ ] Uses ESLint with no ESLint errors. (ideally use [React Compiler Linter](https://docs.expo.dev/guides/react-compiler/#enabling-the-linter))
+- [x] Uses ESLint with no ESLint errors. (ideally use [React Compiler Linter](https://docs.expo.dev/guides/react-compiler/#enabling-the-linter))
 - [x] Uses Separation of Concerns (determine a project structure that follows this principle).
 - [x] Expo Font is used to implement [the font](./assets/fonts.zip).
 
