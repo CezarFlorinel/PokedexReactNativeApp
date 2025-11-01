@@ -143,14 +143,12 @@ function capitalize(s: string) {
 }
 
 const styles = StyleSheet.create({
-  card: {
-    flex: 1,
+    card: {
+    width: "100%",            // ✅ fill the cell’s width
     backgroundColor: "#fff",
     borderRadius: 16,
     padding: 12,
-    margin: 8,
     minHeight: 190,
-    // shadow
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
