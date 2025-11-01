@@ -1,5 +1,8 @@
-import { Ionicons } from "@expo/vector-icons";
+// app/(tabs)/_layout.tsx  (adjust the path if your file is elsewhere)
+import { Image } from "react-native";
 import { Tabs } from "expo-router";
+import React from "react";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function TabsLayout() {
   return (
@@ -15,10 +18,20 @@ export default function TabsLayout() {
         options={{
           title: "Pokémon",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="list" size={size} color={color} />
+            <Image
+              // 👇 adjust this relative path if your _layout.tsx is in a different folder
+              source={require("../../assets/images/pokeballs.png")}
+              style={{
+                width: size,
+                height: size,
+                tintColor: color,    // works best if the PNG is pure white on transparent
+                resizeMode: "contain",
+              }}
+            />
           ),
         }}
       />
+
       <Tabs.Screen
         name="favorites"
         options={{
