@@ -8,7 +8,7 @@ import {
 } from "@/hooks/use-pokemon";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -16,8 +16,12 @@ import {
   ScrollView, StyleSheet, Text, View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import PagerView from "react-native-pager-view";
 
 type TabKey = "about" | "stats" | "evolution";
+
+const TAB_TO_INDEX: Record<TabKey, number> = { about: 0, stats: 1, evolution: 2 };
+const INDEX_TO_TAB: TabKey[] = ["about", "stats", "evolution"];
 
 export default function PokemonDetailScreen() {
   const { name } = useLocalSearchParams<{ name: string }>();
@@ -30,6 +34,12 @@ export default function PokemonDetailScreen() {
   const { data: chain } = useEvolutionChain(chainId);
 
   const [tab, setTab] = useState<TabKey>("about");
+  const pagerRef = useRef<PagerView>(null);
+  
+  const goToTab = (next: TabKey) => {
+    setTab(next);
+    pagerRef.current?.setPage(TAB_TO_INDEX[next]);
+  };
 
   // favorite state
   const idNum = pokemon?.id ?? 0;
@@ -90,14 +100,13 @@ export default function PokemonDetailScreen() {
   const evolutions = useMemo(() => flattenEvolution(chain?.chain), [chain]);
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* header  */}
+      {/* ===== Header & hero same as before ===== */}
+      <ScrollView contentContainerStyle={{ paddingBottom: 0 }} scrollEnabled={false}>
         <View style={styles.headerContainer}>
           <View style={styles.topBar}>
             <Pressable style={styles.iconBtn} onPress={() => router.back()}>
               <Ionicons name="arrow-back" size={22} color="#0E0940" />
             </Pressable>
-
             <Pressable
               style={styles.iconBtn}
               onPress={() =>
@@ -117,14 +126,12 @@ export default function PokemonDetailScreen() {
             </Pressable>
           </View>
 
-          {/* Name + ID */}
           <View style={styles.nameRow}>
             <Text numberOfLines={1} style={styles.pokemonName}>{title}</Text>
             <Text style={styles.pokemonId}>{idPadded}</Text>
           </View>
         </View>
 
-        {/* Types on blue background */}
         <View style={styles.typesRow}>
           {pokemon.types.map((t, i) => (
             <View key={i} style={styles.typeBadge}>
@@ -134,77 +141,83 @@ export default function PokemonDetailScreen() {
           ))}
         </View>
 
-        {/* Big image on blue background */}
         <View style={styles.heroImageWrap}>
           <PokemonImage id={pokemon.id} size={220} />
         </View>
 
-        {/* ===== White panel starts here ===== */}
+        {/* ===== White panel with tabs ===== */}
         <View style={styles.panel}>
-          {/* Tabs */}
+          {/* Tabs row */}
           <View style={styles.tabsRow}>
-            <Tab label="About" active={tab === "about"} onPress={() => setTab("about")} />
-            <Tab label="Stats" active={tab === "stats"} onPress={() => setTab("stats")} />
-            <Tab label="Evolution" active={tab === "evolution"} onPress={() => setTab("evolution")} />
+            <Tab label="About"     active={tab === "about"}     onPress={() => goToTab("about")} />
+            <Tab label="Stats"     active={tab === "stats"}     onPress={() => goToTab("stats")} />
+            <Tab label="Evolution" active={tab === "evolution"} onPress={() => goToTab("evolution")} />
           </View>
 
-          {/* About */}
-          {tab === "about" && (
-            <View style={styles.card}>
-              <InfoRow label="Name" value={title} />
-              <InfoRow label="ID" value={idPadded} />
-              <InfoRow label="Base" value={`${pokemon.base_experience ?? "-"} XP`} />
-              <InfoRow label="Weight" value={`${(pokemon.weight ?? 0) / 10} kg`} />
-              <InfoRow label="Height" value={`${(pokemon.height ?? 0) / 10} m`} />
-              <InfoRow
-                label="Types"
-                value={pokemon.types.map((t) => capitalize(t.type.name)).join(", ")}
-              />
-              <InfoRow
-                label="Abilities"
-                value={pokemon.abilities
-                  .map((a) => capitalize(a.ability.name.replace("-", " ")))
-                  .join(", ")}
-              />
-            </View>
-          )}
-
-          {/* Stats */}
-          {tab === "stats" && (
-            <View style={styles.card}>
-              {pokemon.stats.map((s, i) => (
-                <StatRow key={i} label={formatStatName(s.stat.name)} value={s.base_stat} max={200} />
-              ))}
-            </View>
-          )}
-
-          {/* Evolution */}
-          {tab === "evolution" && (
-            <View style={[styles.card, { gap: 12 }]}>
-              {evolutions.length === 0 && (
-                <Text style={{ color: "#666" }}>This Pokémon does not evolve.</Text>
-              )}
-              {evolutions.map((evo) => (
-                <View key={evo.id} style={styles.evoRow}>
-                  <View style={styles.evoLeft}>
-                    <View style={styles.evoIdBadge}>
-                      <Text style={styles.evoIdText}>{String(evo.id).padStart(3, "0")}</Text>
-                    </View>
-                    <Image
-                      source={{
-                        uri: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${evo.id}.png`,
-                      }}
-                      style={{ width: 40, height: 40 }}
-                      resizeMode="contain"
-                    />
-                  </View>
-                  <Text style={styles.evoName}>{capitalize(evo.name)}</Text>
+          {/* 👇 PagerView: swipe horizontally between pages */}
+          <PagerView
+            ref={pagerRef}
+            style={{ height: undefined, minHeight: 300 }}   // height is required; min keeps it flexible
+            initialPage={TAB_TO_INDEX[tab]}
+            onPageSelected={(e) => {
+              const index = e.nativeEvent.position;
+              setTab(INDEX_TO_TAB[index]);
+            }}
+          >
+            {/* Page 0: About */}
+            <View key="about">
+              <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+                <View style={styles.card}>
+                  <InfoRow label="Name"      value={title} />
+                  <InfoRow label="ID"        value={idPadded} />
+                  <InfoRow label="Base"      value={`${pokemon.base_experience ?? "-"} XP`} />
+                  <InfoRow label="Weight"    value={`${(pokemon.weight ?? 0) / 10} kg`} />
+                  <InfoRow label="Height"    value={`${(pokemon.height ?? 0) / 10} m`} />
+                  <InfoRow label="Types"     value={pokemon.types.map(t => capitalize(t.type.name)).join(", ")} />
+                  <InfoRow label="Abilities" value={pokemon.abilities.map(a => capitalize(a.ability.name.replace("-", " "))).join(", ")} />
                 </View>
-              ))}
+              </ScrollView>
             </View>
-          )}
+
+            {/* Page 1: Stats */}
+            <View key="stats">
+              <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+                <View style={styles.card}>
+                  {pokemon.stats.map((s, i) => (
+                    <StatRow key={i} label={formatStatName(s.stat.name)} value={s.base_stat} max={200} />
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+
+            {/* Page 2: Evolution */}
+            <View key="evolution">
+              <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+                <View style={[styles.card, { gap: 12 }]}>
+                  {evolutions.length === 0 ? (
+                    <Text style={{ color: "#666" }}>This Pokémon does not evolve.</Text>
+                  ) : (
+                    evolutions.map((evo) => (
+                      <View key={evo.id} style={styles.evoRow}>
+                        <View style={styles.evoLeft}>
+                          <View style={styles.evoIdBadge}>
+                            <Text style={styles.evoIdText}>{String(evo.id).padStart(3, "0")}</Text>
+                          </View>
+                          <Image
+                            source={{ uri: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${evo.id}.png` }}
+                            style={{ width: 40, height: 40 }}
+                            resizeMode="contain"
+                          />
+                        </View>
+                        <Text style={styles.evoName}>{capitalize(evo.name)}</Text>
+                      </View>
+                    ))
+                  )}
+                </View>
+              </ScrollView>
+            </View>
+          </PagerView>
         </View>
-        {/* ===== White panel ends ===== */}
       </ScrollView>
     </SafeAreaView>
   );

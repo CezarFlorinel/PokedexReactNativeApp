@@ -54,8 +54,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   footer: { paddingVertical: 16, alignItems: "center" },
-
-  // 👇 fixed-width grid cell (about half width with margins)
+  
   cell: {
     flexBasis: "48%",
     maxWidth: "48%",
