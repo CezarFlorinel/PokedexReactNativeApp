@@ -32,7 +32,7 @@ export const useInfinitePokemonList = (pageSize = PAGE_SIZE) =>
   useInfiniteQuery<
     ApiResourceList,                  // TQueryFnData
     Error,                            // TError
-    InfiniteData<ApiResourceList, number>, // TData  ✅ important
+    InfiniteData<ApiResourceList, number>, // TData  
     [string, number],                 // TQueryKey
     number                            // TPageParam
   >({

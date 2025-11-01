@@ -18,9 +18,9 @@ import {
   Text,
   View,
   Dimensions,
-  Animated, // 👈 NEW
+  Animated,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import PagerView from "react-native-pager-view";
 import { BlurView } from "expo-blur";
 
@@ -52,24 +52,43 @@ const TYPE_COLORS: Record<string, string> = {
 
 const { height: SCREEN_H } = Dimensions.get("window");
 const PAGER_HEIGHT = Math.max(560, SCREEN_H * 0.8);
+const HEADER_BAR_HEIGHT = 48; // height of the row with buttons/title
 
 export default function PokemonDetailScreen() {
+  const insets = useSafeAreaInsets();
   const { name } = useLocalSearchParams<{ name: string }>();
+
+  // Hooks (stable order)
   const { data: pokemon, isLoading, error } = usePokemonByName(name || "");
   const { data: species } = usePokemonSpeciesByName(name || "");
   const chainId = useMemo(
     () => idFromUrl(species?.evolution_chain?.url ?? null) ?? undefined,
     [species]
   );
-  const { data: chain } = useEvolutionChain(chainId);
+  const {
+    data: chain,
+    isLoading: isChainLoading,
+    isError: isChainError,
+    error: chainError,
+  } = useEvolutionChain(chainId);
 
   const [tab, setTab] = useState<TabKey>("about");
   const pagerRef = useRef<PagerView>(null);
 
-  // favorites
   const idNum = pokemon?.id ?? 0;
   const { data: isFav } = useIsFavorite(idNum);
   const toggleFavorite = useToggleFavorite();
+
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, 40, 90],
+    outputRange: [0, 0, 1],
+    extrapolate: "clamp",
+  });
+
+  const evolutions = useMemo(() => flattenEvolution(chain?.chain), [chain]);
+
+  // No hooks below
 
   function getTypeColor(type: string) {
     return TYPE_COLORS[type.toLowerCase()] ?? "#888";
@@ -99,46 +118,41 @@ export default function PokemonDetailScreen() {
   const title = capitalize(pokemon.name);
   const idPadded = String(pokemon.id).padStart(3, "0");
   const imageUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemon.id}.png`;
-  const evolutions = useMemo(() => flattenEvolution(chain?.chain), [chain]);
 
   const goToTab = (next: TabKey) => {
     setTab(next);
     pagerRef.current?.setPage(TAB_TO_INDEX[next]);
   };
 
-  // ===== Scroll title reveal (Animated) =====
-  const scrollY = useRef(new Animated.Value(0)).current;
-  // Fade the title in between ~40-90px of scroll
-  const titleOpacity = scrollY.interpolate({
-    inputRange: [0, 40, 90],
-    outputRange: [0, 0, 1],
-    extrapolate: "clamp",
-  });
+  // Height we’ll reserve at the top of the scroll content
+  const HEADER_TOTAL_HEIGHT = insets.top + HEADER_BAR_HEIGHT + 8; // +8 for breathing room
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Make the outer scroller animated so we can read scrollY */}
-      <Animated.ScrollView
-        stickyHeaderIndices={[0]}
-        contentContainerStyle={{ paddingBottom: 24 }}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
-        scrollEventThrottle={16}
+      {/* ===== Absolute Header (always on top & clickable) ===== */}
+      <View
+        style={[
+          styles.absoluteHeader,
+          { paddingTop: insets.top, height: insets.top + HEADER_BAR_HEIGHT + 8 },
+        ]}
       >
-        {/* ===== Sticky header with platform-specific background ===== */}
-        <SafeAreaView edges={["top"]} style={styles.stickyHeader}>
-          {Platform.OS === "ios" ? (
-            <>
-              <BlurView tint="light" intensity={28} style={StyleSheet.absoluteFillObject} />
-              <View style={styles.stickyTintIOS} />
-            </>
-          ) : (
-            <View style={styles.stickyTintAndroid} />
-          )}
+        {/* Background (blur on iOS, solid on Android) */}
+        {Platform.OS === "ios" ? (
+          <>
+            <BlurView
+              tint="light"
+              intensity={28}
+              style={StyleSheet.absoluteFillObject}
+              pointerEvents="none"
+            />
+            <View style={styles.stickyTintIOS} pointerEvents="none" />
+          </>
+        ) : (
+          <View style={styles.stickyTintAndroid} pointerEvents="none" />
+        )}
 
-          {/* Top bar buttons */}
+        {/* Foreground content */}
+        <View style={styles.headerContentRow}>
           <View style={styles.topBar}>
             <Pressable style={styles.iconBtn} onPress={() => router.back()}>
               <Ionicons name="arrow-back" size={22} color="#0E0940" />
@@ -163,18 +177,29 @@ export default function PokemonDetailScreen() {
             </Pressable>
           </View>
 
-          {/* Centered title that fades in/out; pointerEvents=none so buttons stay clickable */}
+          {/* Title that fades in while scrolling */}
           <Animated.View
             pointerEvents="none"
             style={[styles.headerTitleWrap, { opacity: titleOpacity }]}
           >
             <Text numberOfLines={1} style={styles.headerTitleText}>
-              {capitalize(pokemon.name)}
+              {title}
             </Text>
           </Animated.View>
-        </SafeAreaView>
+        </View>
+      </View>
 
-        {/* Non-sticky header content */}
+      {/* ===== Scroll Content (padded down so it never goes under the header) ===== */}
+      <Animated.ScrollView
+        contentContainerStyle={{ paddingTop: HEADER_TOTAL_HEIGHT, paddingBottom: 24 }}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header content (below absolute header) */}
         <View style={styles.headerContainer}>
           <View style={styles.nameRow}>
             <Text numberOfLines={1} style={styles.pokemonName}>
@@ -194,12 +219,12 @@ export default function PokemonDetailScreen() {
           ))}
         </View>
 
-        {/* Hero image */}
+        {/* Hero */}
         <View style={styles.heroImageWrap}>
           <PokemonImage id={pokemon.id} size={220} />
         </View>
 
-        {/* White panel with tabs + pager */}
+        {/* Tabs + Pager */}
         <View style={styles.panel}>
           <View style={styles.tabsRow}>
             <Tab label="About" active={tab === "about"} onPress={() => goToTab("about")} />
@@ -262,42 +287,64 @@ export default function PokemonDetailScreen() {
 
             {/* Evolution */}
             <View key="evolution" style={{ flex: 1 }}>
-              <Animated.ScrollView
-                contentContainerStyle={{ paddingBottom: 24 }}
-                nestedScrollEnabled
-                showsVerticalScrollIndicator={false}
-              >
-                <View style={styles.card}>
-                  {evolutions.length === 0 ? (
-                    <Text style={{ color: "#666" }}>This Pokémon does not evolve.</Text>
-                  ) : (
-                    evolutions.map((evo, idx) => (
-                      <View key={evo.id}>
-                        {idx > 0 && <View style={styles.evoConnector} />}
-                        <View style={styles.evoCard}>
-                          <View style={styles.evoLeftPane}>
-                            <Image
-                              source={{
-                                uri: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${evo.id}.png`,
-                              }}
-                              style={styles.evoImage}
-                              resizeMode="contain"
-                            />
-                          </View>
-                          <View style={styles.evoRightPane}>
-                            <View style={styles.evoIdBadge}>
-                              <Text style={styles.evoIdText}>
-                                {String(evo.id).padStart(3, "0")}
-                              </Text>
-                            </View>
-                            <Text style={styles.evoName}>{capitalize(evo.name)}</Text>
-                          </View>
-                        </View>
-                      </View>
-                    ))
+              {chainId == null ? (
+                <View style={[styles.card, { alignItems: "center" }]}>
+                  <Text style={{ color: "#666" }}>No evolution data for this species.</Text>
+                </View>
+              ) : isChainLoading ? (
+                <View style={[styles.card, { alignItems: "center" }]}>
+                  <ActivityIndicator size="small" color="#5631E8" />
+                  <Text style={{ marginTop: 8, color: "#5631E8" }}>
+                    Loading evolution chain…
+                  </Text>
+                </View>
+              ) : isChainError ? (
+                <View style={[styles.card, { alignItems: "center" }]}>
+                  <Text style={{ color: "#D14343", fontWeight: "700" }}>
+                    Could not load evolution chain.
+                  </Text>
+                  {!!chainError?.message && (
+                    <Text style={{ color: "#999", marginTop: 4 }}>{chainError.message}</Text>
                   )}
                 </View>
-              </Animated.ScrollView>
+              ) : (
+                <Animated.ScrollView
+                  contentContainerStyle={{ paddingBottom: 24 }}
+                  nestedScrollEnabled
+                  showsVerticalScrollIndicator={false}
+                >
+                  <View style={styles.card}>
+                    {(!evolutions || evolutions.length === 0) ? (
+                      <Text style={{ color: "#666" }}>This Pokémon does not evolve.</Text>
+                    ) : (
+                      evolutions.map((evo, idx) => (
+                        <View key={evo.id}>
+                          {idx > 0 && <View style={styles.evoConnector} />}
+                          <View style={styles.evoCard}>
+                            <View style={styles.evoLeftPane}>
+                              <Image
+                                source={{
+                                  uri: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${evo.id}.png`,
+                                }}
+                                style={styles.evoImage}
+                                resizeMode="contain"
+                              />
+                            </View>
+                            <View style={styles.evoRightPane}>
+                              <View style={styles.evoIdBadge}>
+                                <Text style={styles.evoIdText}>
+                                  {String(evo.id).padStart(3, "0")}
+                                </Text>
+                              </View>
+                              <Text style={styles.evoName}>{capitalize(evo.name)}</Text>
+                            </View>
+                          </View>
+                        </View>
+                      ))
+                    )}
+                  </View>
+                </Animated.ScrollView>
+              )}
             </View>
           </PagerView>
         </View>
@@ -381,29 +428,41 @@ function formatStatName(s: string) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BLUE_BG },
 
-  // Sticky header wrapper (platform-specific background)
-  stickyHeader: {
-    position: "relative",
+  // Absolute header (always clickable)
+  absoluteHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+    elevation: 1000,
     backgroundColor: "transparent",
-    paddingHorizontal: 16,
   },
-  // iOS: subtle frosted over blur
+
+  // iOS tint over blur
   stickyTintIOS: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(237, 246, 255, 0.30)",
   },
-  // Android: solid color (no blur)
+
+  // Android solid bg
   stickyTintAndroid: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: BLUE_BG,
+  },
+
+  // Header content wrapper (foreground)
+  headerContentRow: {
+    paddingHorizontal: 16,
+    height: HEADER_BAR_HEIGHT + 8, // match space below safe area
+    justifyContent: "center",
   },
 
   topBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingTop: 8,
-    paddingBottom: 8,
+    height: HEADER_BAR_HEIGHT,
   },
   iconBtn: {
     width: 36,
@@ -413,12 +472,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  // Centered title inside sticky header; appears on scroll
+  // Centered title inside header
   headerTitleWrap: {
     position: "absolute",
     left: 16,
     right: 16,
-    bottom: 8, // sit near the buttons row
+    bottom: 6,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -533,7 +592,7 @@ const styles = StyleSheet.create({
   },
   progressFill: { height: "100%", backgroundColor: "#5631E8" },
 
-  // Evolution card visuals
+  // Evolution visuals
   evoConnector: {
     height: 18,
     alignSelf: "center",
