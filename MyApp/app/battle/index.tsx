@@ -1,5 +1,5 @@
 // app/battle/index.tsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -9,6 +9,8 @@ import {
   StyleSheet,
   Text,
   View,
+  Animated,
+  Easing,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -28,7 +30,6 @@ const pixelBack = (id: number | string) =>
   `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/back/${id}.png`;
 
 // ---- local type icons (PNG) ----
-// Place PNGs in assets/images/types/<type>.png (lowercase)
 const TYPE_ICONS: Record<string, any> = {
   bug: require("../../assets/images/types/Type=Bug.png"),
   dark: require("../../assets/images/types/Type=Dark.png"),
@@ -77,6 +78,37 @@ export default function BattleScreen() {
   const myIdNum = useMemo(() => Number(myId ?? myPokemon?.id ?? 0), [myId, myPokemon?.id]);
   const oppIdNum = opponent?.id ?? 4; // preview: Charmander
 
+  // ===== shaking pokéball animation when no opponent =====
+  const shake = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    let anim: Animated.CompositeAnimation | null = null;
+
+    if (!opponent) {
+      // loop a gentle left-right shake: -6 -> 6 -> -6...
+      const run = () => {
+        anim = Animated.loop(
+          Animated.sequence([
+            Animated.timing(shake, { toValue: -6, duration: 120, easing: Easing.linear, useNativeDriver: true }),
+            Animated.timing(shake, { toValue: 6, duration: 120, easing: Easing.linear, useNativeDriver: true }),
+            Animated.timing(shake, { toValue: -6, duration: 120, easing: Easing.linear, useNativeDriver: true }),
+            Animated.timing(shake, { toValue: 0, duration: 120, easing: Easing.linear, useNativeDriver: true }),
+          ])
+        );
+        anim.start();
+      };
+      run();
+    } else {
+      // stop & reset when an opponent is chosen
+      shake.stopAnimation();
+      shake.setValue(0);
+    }
+
+    return () => {
+      if (anim) anim.stop();
+    };
+  }, [opponent, shake]);
+
   return (
     <View style={styles.container}>
       {/* top bar */}
@@ -94,10 +126,19 @@ export default function BattleScreen() {
         resizeMode="cover"
         style={styles.arena}
       >
-        {/* your back sprite — mirrored so it faces RIGHT */}
+        {/* your back sprite — keep as you requested */}
         <Image source={{ uri: pixelBack(myIdNum) }} style={styles.mySprite} resizeMode="contain" />
-        {/* opponent front sprite */}
-        <Image source={{ uri: pixelFront(oppIdNum) }} style={styles.enemySprite} resizeMode="contain" />
+
+        {/* opponent slot: show shaking pokéball until selected, then show sprite */}
+        {opponent ? (
+          <Image source={{ uri: pixelFront(oppIdNum) }} style={styles.enemySprite} resizeMode="contain" />
+        ) : (
+          <Animated.Image
+            source={POKE_BALL_ICON}
+            style={[styles.pokeball, { transform: [{ translateX: shake }] }]}
+            resizeMode="contain"
+          />
+        )}
       </ImageBackground>
 
       {/* names + types */}
@@ -202,7 +243,7 @@ function capitalize(s: string) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: BLUE_BG,paddingBottom: 50 },
+  container: { flex: 1, backgroundColor: BLUE_BG, paddingBottom: 50 },
 
   topBar: {
     flexDirection: "row",
@@ -231,6 +272,14 @@ const styles = StyleSheet.create({
     transform: [{ scaleX: 1 }], // face RIGHT DONT CHANGEEEEEEEEEEE
   },
   enemySprite: { width: 120, height: 120 },
+
+  // NEW: placeholder pokéball style
+  pokeball: {
+    width: 20,
+    height: 20,
+    marginBottom: 40,
+    marginRight: 20,
+  },
 
   cardRow: {
     flexDirection: "row",
