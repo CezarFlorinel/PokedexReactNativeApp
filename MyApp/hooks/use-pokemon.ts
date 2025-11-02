@@ -8,7 +8,7 @@ export type PokemonWithId = NamedAPIResource & {
 };
 
 export type BasicPokemon = { id: number; name: string };
-export const PAGE_SIZE = 150;
+export const PAGE_SIZE = 50;
 
 const toBasic = (r: NamedAPIResource): BasicPokemon => ({
   id: getId(r.url),
@@ -81,7 +81,7 @@ export const usePokemonList = (offset = 0, limit = 150) => {
   return useQuery({
     queryKey: ["pokemon-list", offset, limit],
     queryFn: async (): Promise<BasicPokemon[]> => {
-      const res = await PokeApiService.listPokemons(offset, limit); // 👈 order fixed
+      const res = await PokeApiService.listPokemons(offset, limit); 
       return res.results.map((r) => ({
         id: Number(r.url.match(/\/pokemon\/(\d+)\/?$/)?.[1] || 0),
         name: r.name,

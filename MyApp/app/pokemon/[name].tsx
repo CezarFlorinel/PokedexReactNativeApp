@@ -397,16 +397,22 @@ function StatRow({ label, value, max }: { label: string; value: number; max: num
 }
 
 /* ---------- Helpers ---------- */
+type EvolutionNode = {
+  species: { name: string; url: string };
+  evolves_to?: EvolutionNode[];
+};
 
-function flattenEvolution(node: any | undefined): { id: number; name: string }[] {
+function flattenEvolution(node?: EvolutionNode): { id: number; name: string }[] {
   if (!node) return [];
   const out: { id: number; name: string }[] = [];
-  const walk = (n: any) => {
-    const name: string = n?.species?.name ?? "";
-    const id = idFromUrl(n?.species?.url) ?? 0;
+
+  const walk = (n: EvolutionNode) => {
+    const { name, url } = n.species;
+    const id = idFromUrl(url) ?? 0;
     if (id && name) out.push({ id, name });
-    (n?.evolves_to || []).forEach(walk);
+    (n.evolves_to ?? []).forEach(walk);
   };
+
   walk(node);
   return out;
 }
@@ -615,7 +621,7 @@ const styles = StyleSheet.create({
   },
   evoLeftPane: {
     width: 76,
-    backgroundColor: "#F6E9FF",
+    backgroundColor: "#F6F6FF",
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 12,
