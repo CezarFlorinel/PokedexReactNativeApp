@@ -19,7 +19,6 @@ export default function TabsLayout() {
           title: "Pokémon",
           tabBarIcon: ({ color, size }) => (
             <Image
-              // 👇 adjust this relative path if your _layout.tsx is in a different folder
               source={require("../../assets/images/pokeballs.png")}
               style={{
                 width: size,

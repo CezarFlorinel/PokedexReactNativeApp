@@ -48,6 +48,7 @@ export default function RootLayout() {
         <Stack>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="pokemon/[name]" options={{ headerShown: false }} />
+          <Stack.Screen name="battle/index" options={{ headerShown: false }} />
         </Stack>
       </SafeAreaProvider>
     </QueryClientProvider>

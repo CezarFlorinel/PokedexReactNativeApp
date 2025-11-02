@@ -161,6 +161,20 @@ export default function PokemonDetailScreen() {
             <Pressable
               style={styles.iconBtn}
               onPress={() =>
+                router.push({
+                  pathname: "/battle",
+                  params: { myId: String(pokemon.id), myName: pokemon.name },
+                })
+              }
+              accessibilityLabel="Start battle"
+            >
+              {/* crossed-swords vibe using flame-outline works nicely in Ionicons */}
+              <Ionicons name="flame-outline" size={22} color="#5631E8" />
+            </Pressable>
+
+            <Pressable
+              style={styles.iconBtn}
+              onPress={() =>
                 toggleFavorite.mutate({
                   pokemonId: idNum,
                   name: pokemon.name,
