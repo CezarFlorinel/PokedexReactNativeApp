@@ -44,7 +44,7 @@ Each optional item is worth 1 extra point.
 - [-] Pixel Perfect Design on either iOS or Android.  ========== Chose Android, and i would say it is ~95%
 - [x] No bugs, console errors and use of console.log. ========= or at least none that i know of
 - [ ] Added [localizations](https://docs.expo.dev/guides/localization/) for the app.
-- [ ] Adds Pokémon Battle Feature.
+- [x] Adds Pokémon Battle Feature.
 
 
 - [ ] Unchecked

@@ -1,5 +1,6 @@
+// app/pokemon/[name].tsx
 import { PokemonImage } from "@/components/ui/pokemon-image";
-import AppText from "@/components/ui/app-text"
+import AppText from "@/components/ui/app-text";
 import { useIsFavorite, useToggleFavorite } from "@/hooks/use-favorites";
 import {
   idFromUrl,
@@ -53,6 +54,9 @@ const TYPE_COLORS: Record<string, string> = {
 const { height: SCREEN_H } = Dimensions.get("window");
 const PAGER_HEIGHT = Math.max(560, SCREEN_H * 0.8);
 const HEADER_BAR_HEIGHT = 48; // height of the row with buttons/title
+
+// New medal icon (PNG) for the battle action
+const MEDAL_ICON = require("../../assets/images/medal.png");
 
 export default function PokemonDetailScreen() {
   const insets = useSafeAreaInsets();
@@ -154,41 +158,45 @@ export default function PokemonDetailScreen() {
         {/* Foreground content */}
         <View style={styles.headerContentRow}>
           <View style={styles.topBar}>
+            {/* Left: back button */}
             <Pressable style={styles.iconBtn} onPress={() => router.back()}>
               <Ionicons name="arrow-back" size={22} color="#0E0940" />
             </Pressable>
 
-            <Pressable
-              style={styles.iconBtn}
-              onPress={() =>
-                router.push({
-                  pathname: "/battle",
-                  params: { myId: String(pokemon.id), myName: pokemon.name },
-                })
-              }
-              accessibilityLabel="Start battle"
-            >
-              {/* crossed-swords vibe using flame-outline works nicely in Ionicons */}
-              <Ionicons name="flame-outline" size={22} color="#5631E8" />
-            </Pressable>
+            {/* Right: medal (battle) + heart (favorite) next to each other */}
+            <View style={styles.rightActions}>
+              <Pressable
+                style={styles.iconBtn}
+                onPress={() =>
+                  router.push({
+                    pathname: "/battle",
+                    params: { myId: String(pokemon.id), myName: pokemon.name },
+                  })
+                }
+                accessibilityLabel="Start battle"
+              >
+                <Image source={MEDAL_ICON} style={styles.iconImg} />
+              </Pressable>
 
-            <Pressable
-              style={styles.iconBtn}
-              onPress={() =>
-                toggleFavorite.mutate({
-                  pokemonId: idNum,
-                  name: pokemon.name,
-                  imageUrl,
-                  isCurrentlyFavorite: !!isFav,
-                })
-              }
-            >
-              <Ionicons
-                name={isFav ? "heart" : "heart-outline"}
-                size={22}
-                color={isFav ? "#EF5350" : "#0E0940"}
-              />
-            </Pressable>
+              <Pressable
+                style={styles.iconBtn}
+                onPress={() =>
+                  toggleFavorite.mutate({
+                    pokemonId: idNum,
+                    name: pokemon.name,
+                    imageUrl,
+                    isCurrentlyFavorite: !!isFav,
+                  })
+                }
+                accessibilityLabel={isFav ? "Remove from favorites" : "Add to favorites"}
+              >
+                <Ionicons
+                  name={isFav ? "heart" : "heart-outline"}
+                  size={22}
+                  color={isFav ? "#EF5350" : "#0E0940"}
+                />
+              </Pressable>
+            </View>
           </View>
 
           {/* Title that fades in while scrolling */}
@@ -484,12 +492,26 @@ const styles = StyleSheet.create({
     alignItems: "center",
     height: HEADER_BAR_HEIGHT,
   },
+
+  rightActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
   iconBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  // Medal PNG styled/tinted same as arrow/heart outline
+  iconImg: {
+    width: 22,
+    height: 22,
+    tintColor: "#0E0940",
   },
 
   // Centered title inside header
@@ -591,7 +613,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#E5E7EB",
   },
   infoLabel: { color: "#8083A3", fontWeight: "700" },
