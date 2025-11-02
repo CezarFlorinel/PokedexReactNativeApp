@@ -11,6 +11,7 @@ import {
   View,
   Animated,
   Easing,
+  ImageSourcePropType,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -30,7 +31,7 @@ const pixelBack = (id: number | string) =>
   `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/back/${id}.png`;
 
 // ---- local type icons (PNG) ----
-const TYPE_ICONS: Record<string, any> = {
+const TYPE_ICONS: Record<string, ImageSourcePropType> = {
   bug: require("../../assets/images/types/Type=Bug.png"),
   dark: require("../../assets/images/types/Type=Dark.png"),
   dragon: require("../../assets/images/types/Type=Dragon.png"),
@@ -53,6 +54,8 @@ const TYPE_ICONS: Record<string, any> = {
 
 const BATTLE_ICON = require("../../assets/images/BattleIconColor.png");
 const POKE_BALL_ICON = require("../../assets/images/pokeball.png");
+const SLASH_ICON = require("../../assets/images/slash.png");
+
 
 export default function BattleScreen() {
   const { myId, myName } = useLocalSearchParams<{ myId?: string; myName?: string }>();
@@ -72,42 +75,96 @@ export default function BattleScreen() {
 
   const [opponent, setOpponent] = useState<{ id: number; name: string } | null>(null);
 
-  // fetch opponent details (to get types) only when selected
+  // opponent types (lazy)
   const OppTypes = opponent ? <OpponentTypes name={opponent.name} /> : null;
 
   const myIdNum = useMemo(() => Number(myId ?? myPokemon?.id ?? 0), [myId, myPokemon?.id]);
   const oppIdNum = opponent?.id ?? 4; // preview: Charmander
 
-  // ===== shaking pokéball animation when no opponent =====
+  // ===== shaking pokéball when no opponent =====
   const shake = useRef(new Animated.Value(0)).current;
-
   useEffect(() => {
     let anim: Animated.CompositeAnimation | null = null;
-
     if (!opponent) {
-      // loop a gentle left-right shake: -6 -> 6 -> -6...
-      const run = () => {
-        anim = Animated.loop(
-          Animated.sequence([
-            Animated.timing(shake, { toValue: -6, duration: 120, easing: Easing.linear, useNativeDriver: true }),
-            Animated.timing(shake, { toValue: 6, duration: 120, easing: Easing.linear, useNativeDriver: true }),
-            Animated.timing(shake, { toValue: -6, duration: 120, easing: Easing.linear, useNativeDriver: true }),
-            Animated.timing(shake, { toValue: 0, duration: 120, easing: Easing.linear, useNativeDriver: true }),
-          ])
-        );
-        anim.start();
-      };
-      run();
+      anim = Animated.loop(
+        Animated.sequence([
+          Animated.timing(shake, { toValue: -6, duration: 120, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(shake, { toValue: 6, duration: 120, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(shake, { toValue: -6, duration: 120, easing: Easing.linear, useNativeDriver: true }),
+          Animated.timing(shake, { toValue: 0, duration: 120, easing: Easing.linear, useNativeDriver: true }),
+        ])
+      );
+      anim.start();
     } else {
-      // stop & reset when an opponent is chosen
       shake.stopAnimation();
       shake.setValue(0);
     }
-
-    return () => {
-      if (anim) anim.stop();
-    };
+    return () => { if (anim) anim.stop(); };
   }, [opponent, shake]);
+
+  // ===== SIMPLE BATTLE STATE (fixed loop with fresh state) =====
+  const [battling, setBattling] = useState(false);
+  const [myHits, setMyHits] = useState(0);     // hits TAKEN by me
+  const [oppHits, setOppHits] = useState(0);   // hits TAKEN by opponent
+  const [turn, setTurn] = useState<"me" | "opp">("me");
+  const [result, setResult] = useState<null | "win" | "lose">(null);
+
+  const randHits = () => 1 + Math.floor(Math.random() * 3); // 1..3
+
+  // One-tick loop: runs every 650ms while battling and no result yet.
+  useEffect(() => {
+    if (!battling || result) return;
+    const t = setTimeout(() => {
+      if (turn === "me") {
+        const hits = randHits();
+        setOppHits(prev => {
+          const next = prev + hits;
+          if (next >= 5) {
+            setResult("win");
+            setBattling(false);
+          } else {
+            setTurn("opp");
+          }
+          return next;
+        });
+      } else {
+        const hits = randHits();
+        setMyHits(prev => {
+          const next = prev + hits;
+          if (next >= 5) {
+            setResult("lose");
+            setBattling(false);
+          } else {
+            setTurn("me");
+          }
+          return next;
+        });
+      }
+    }, 650);
+    return () => clearTimeout(t);
+  }, [battling, turn, result]);
+
+  const startBattle = () => {
+    if (!opponent || battling) return;
+    setResult(null);
+    setMyHits(0);
+    setOppHits(0);
+    setTurn("me"); // you start
+    setBattling(true);
+  };
+
+  const resetBattle = () => {
+    setBattling(false);
+    setMyHits(0);
+    setOppHits(0);
+    setTurn("me");
+    setResult(null);
+  };
+
+  // If the opponent disappears mid-fight, reset.
+  useEffect(() => {
+    if (battling && !opponent) resetBattle();
+  }, [opponent, battling]);
 
   return (
     <View style={styles.container}>
@@ -126,10 +183,10 @@ export default function BattleScreen() {
         resizeMode="cover"
         style={styles.arena}
       >
-        {/* your back sprite — keep as you requested */}
+        {/* your back sprite — faces RIGHT (keep) */}
         <Image source={{ uri: pixelBack(myIdNum) }} style={styles.mySprite} resizeMode="contain" />
 
-        {/* opponent slot: show shaking pokéball until selected, then show sprite */}
+        {/* opponent slot: show shaking pokéball until selected */}
         {opponent ? (
           <Image source={{ uri: pixelFront(oppIdNum) }} style={styles.enemySprite} resizeMode="contain" />
         ) : (
@@ -141,25 +198,47 @@ export default function BattleScreen() {
         )}
       </ImageBackground>
 
-      {/* names + types */}
+      {/* names + battle controls / indicators */}
       <View style={styles.cardRow}>
-        {/* left: YOU */}
+        {/* you */}
         <View style={styles.sideCard}>
           <Text style={styles.pokeName} numberOfLines={1}>
             {capitalize(myPokemon?.name ?? myName ?? "You")}
           </Text>
           <View style={styles.typeRow}>
-            {(myPokemon?.types ?? []).map((t, i) => (
+            {(myPokemon?.types ?? []).map((t: { type: { name: string } }, i: number) => (
               <TypeChip key={i} type={t.type.name} />
             ))}
           </View>
         </View>
 
-        <View>
-          <Image source={BATTLE_ICON} style={{ width: 70, height: 70 }} />
+        {/* center: battle action OR score */}
+        <View style={{ alignItems: "center", justifyContent: "center" }}>
+          {!battling && result === null ? (
+            <Pressable onPress={startBattle} disabled={!opponent} style={{ opacity: opponent ? 1 : 0.4 }}>
+              <Image source={BATTLE_ICON} style={{ width: 70, height: 70 }} />
+            </Pressable>
+          ) : (
+            <View style={styles.scoreRow}>
+              <View style={styles.scoreBox}><Text style={styles.scoreText}>{myHits}</Text></View>
+              <Text style={styles.scoreColon}>:</Text>
+              <View style={styles.scoreBox}><Text style={styles.scoreText}>{oppHits}</Text></View>
+            </View>
+          )}
+
+          {result && (
+            <Text style={[styles.resultText, { color: result === "win" ? "#1E9E5E" : "#E53935" }]}>
+              {result === "win" ? "You win!" : "You lose!"}
+            </Text>
+          )}
+          {result && (
+            <Pressable onPress={resetBattle} style={styles.rematchBtn}>
+              <Text style={styles.rematchText}>Rematch</Text>
+            </Pressable>
+          )}
         </View>
 
-        {/* right: OPPONENT (right aligned) */}
+        {/* opponent */}
         <View style={[styles.sideCard, styles.rightAligned]}>
           <Text style={[styles.pokeName, styles.rightText]} numberOfLines={1}>
             {opponent ? capitalize(opponent.name) : "Select rival"}
@@ -187,7 +266,10 @@ export default function BattleScreen() {
           renderItem={({ item }) => {
             const selected = opponent?.id === item.id;
             return (
-              <Pressable onPress={() => setOpponent(item)} style={[styles.rowCard, selected && styles.rowCardActive]}>
+              <Pressable
+                onPress={() => !battling && setOpponent(item)}
+                style={[styles.rowCard, selected && styles.rowCardActive, battling && { opacity: 0.5 }]}
+              >
                 <Image source={{ uri: pixelFront(item.id) }} style={{ width: 40, height: 40 }} resizeMode="contain" />
                 <View style={{ marginLeft: 12, flex: 1 }}>
                   <View style={styles.idBadge}>
@@ -220,7 +302,7 @@ function OpponentTypes({ name }: { name: string }) {
   if (isLoading || !data) return null;
   return (
     <View style={[styles.typeRow, { justifyContent: "flex-end" }]}>
-      {data.types.map((t: any, i: number) => (
+      {(data.types ?? []).map((t: { type: { name: string } }, i: number) => (
         <TypeChip key={i} type={t.type.name} />
       ))}
     </View>
@@ -229,8 +311,7 @@ function OpponentTypes({ name }: { name: string }) {
 
 /** A pill with icon + type label using local PNGs. */
 function TypeChip({ type }: { type: string }) {
-  const key = type.toLowerCase();
-  const icon = TYPE_ICONS[key];
+  const icon = TYPE_ICONS[type.toLowerCase()];
   return (
     <View style={styles.typeChip}>
       {icon ? <Image source={icon} style={{ width: 40, height: 40 }} /> : null}
@@ -266,20 +347,11 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     paddingHorizontal: 16,
   },
-  mySprite: {
-    width: 120,
-    height: 120,
-    transform: [{ scaleX: 1 }], // face RIGHT DONT CHANGEEEEEEEEEEE
-  },
+  mySprite: { width: 120, height: 120, transform: [{ scaleX: 1 }] }, // face RIGHT
   enemySprite: { width: 120, height: 120 },
 
-  // NEW: placeholder pokéball style
-  pokeball: {
-    width: 20,
-    height: 20,
-    marginBottom: 40,
-    marginRight: 20,
-  },
+  // placeholder pokéball
+  pokeball: { width: 20, height: 20, marginBottom: 40, marginRight: 20 },
 
   cardRow: {
     flexDirection: "row",
@@ -299,11 +371,32 @@ const styles = StyleSheet.create({
   subtle: { color: "#8083A3", marginTop: 2 },
 
   typeRow: { flexDirection: "row", flexWrap: "wrap" },
-  typeChip: {
-    flexDirection: "row",
-    alignItems: "flex-start",
+  typeChip: { flexDirection: "row", alignItems: "flex-start" },
+
+  // === SCORE (hit indicators) ===
+  scoreRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  scoreBox: {
+    minWidth: 32,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: "#EF5350",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
   },
-  typeText: { color: "#0E0940", fontWeight: "700", fontSize: 12 },
+  scoreText: { color: "#fff", fontWeight: "800", fontSize: 16 },
+  scoreColon: { color: "#EF5350", fontWeight: "800", fontSize: 18 },
+
+  resultText: { marginTop: 6, fontWeight: "800" },
+  rematchBtn: {
+    marginTop: 6,
+    alignSelf: "center",
+    backgroundColor: "#6D55FF",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  rematchText: { color: "#fff", fontWeight: "700" },
 
   subtitle: {
     marginTop: 14,
@@ -343,3 +436,4 @@ const styles = StyleSheet.create({
   center: { alignItems: "center", justifyContent: "center", paddingVertical: 24 },
   muted: { color: "#666", marginTop: 6 },
 });
+
