@@ -1,3 +1,12 @@
+
+
+Stundet number: 706431
+Stundent Name: Cezar Ciobanu
+
+
+
+
+
 #### App functionality
 
 - [x] Working Expo Go project, should be able to scan the QR code and see the app running on any device.
