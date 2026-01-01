@@ -1,5 +1,5 @@
 // app/battle/index.tsx
-import React, { useMemo, useState, useEffect, useRef } from "react";
+import React, { useMemo, useState, useEffect, useRef,useCallback  } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -125,26 +125,34 @@ export default function BattleScreen() {
   const slashOpacity = useRef(new Animated.Value(0)).current;
   const [slashDir, setSlashDir] = useState<"meToOpp" | "oppToMe">("meToOpp"); // for flipping
 
-  const randHits = () => 1 + Math.floor(Math.random() * 3); // 1..3
+const randHits = useCallback(() => 1 + Math.floor(Math.random() * 3), []); // 1..3
+
 
   // Shake helper
-  const runShake = (val: Animated.Value) =>
+const runShake = useCallback(
+  (val: Animated.Value) =>
     Animated.sequence([
       Animated.timing(val, { toValue: -6, duration: 60, easing: Easing.linear, useNativeDriver: true }),
       Animated.timing(val, { toValue: 6, duration: 120, easing: Easing.linear, useNativeDriver: true }),
       Animated.timing(val, { toValue: 0, duration: 60, easing: Easing.linear, useNativeDriver: true }),
-    ]);
+    ]),
+  []
+);
 
   // Defender flash helper
-  const runFlash = (val: Animated.Value) =>
+const runFlash = useCallback(
+  (val: Animated.Value) =>
     Animated.sequence([
       Animated.timing(val, { toValue: 0.25, duration: 70, useNativeDriver: true }),
       Animated.timing(val, { toValue: 1, duration: 90, useNativeDriver: true }),
-    ]);
+    ]),
+  []
+);
 
   // Slash travel helper
-  const runSlash = (fromLeft: boolean) => {
-    const margin = 36; // start/stop near sprites
+const runSlash = useCallback(
+  (fromLeft: boolean) => {
+    const margin = 36;
     const start = fromLeft ? margin : arenaWidth - margin;
     const end = fromLeft ? arenaWidth - margin : margin;
 
@@ -157,12 +165,16 @@ export default function BattleScreen() {
       Animated.timing(slashX, { toValue: end, duration: 260, easing: Easing.out(Easing.quad), useNativeDriver: true }),
       Animated.timing(slashOpacity, { toValue: 0, duration: 40, useNativeDriver: true }),
     ]);
-  };
+  },
+  [arenaWidth, slashOpacity, slashX] // setSlashDir doesn't need to be here
+);
 
   // Perform N hits from one side, animate each, then resolve
-  const performAttack = (from: "me" | "opp", hits: number) =>
+const performAttack = useCallback(
+  (from: "me" | "opp", hits: number) =>
     new Promise<void>((resolve) => {
       let i = 0;
+
       const doOne = () => {
         const fromLeft = from === "me";
         const attackerShake = fromLeft ? myShake : oppShake;
@@ -176,8 +188,12 @@ export default function BattleScreen() {
           });
         });
       };
+
       doOne();
-    });
+    }),
+  // these are stable refs, and functions you already declared above
+  [myShake, oppShake, oppFlash, myFlash, runShake, runSlash, runFlash]
+);
 
   // Battle driver: wait for animations per turn (no stale state)
   useEffect(() => {
@@ -217,7 +233,7 @@ export default function BattleScreen() {
 
     tick();
     return () => { cancelled = true; };
-  }, [battling, turn, result]);
+}, [battling, turn, result, performAttack, randHits]);
 
   const startBattle = () => {
     if (!opponent || battling) return;
