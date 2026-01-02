@@ -42,16 +42,28 @@ export default function PokemonCard({ pokemon, onPress }: PokemonCardProps) {
     });
   };
 
-  const handleShare = async () => {
-    setMenuVisible(false);
-    try {
-      await Share.share({
-        message: `Check out ${capitalize(pokemon.name)}! #${String(idNum).padStart(3, "0")}`,
-        url: imageUrl,
-        title: `Pokémon • ${capitalize(pokemon.name)}`,
-      });
-    } catch {}
-  };
+  const delay = (ms: number) => new Promise<void>((res) => setTimeout(res, ms));
+
+const handleShare = async () => {
+  // close sheet first
+  setMenuVisible(false);
+
+  // wait for modal close animation / UI settle (important on iOS)
+  await delay(250); // 150–300ms is usually enough
+
+  try {
+    const name = capitalize(pokemon.name);
+    const number = String(idNum).padStart(3, "0");
+
+    await Share.share({
+      message: `Check out ${name}! #${number}\n${imageUrl}`,
+      title: `Pokémon • ${name}`,
+      url: imageUrl, // helps iOS
+    });
+  } catch {
+    // ignore cancel
+  }
+};
 
   return (
     <>
