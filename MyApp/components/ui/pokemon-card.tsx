@@ -42,28 +42,19 @@ export default function PokemonCard({ pokemon, onPress }: PokemonCardProps) {
     });
   };
 
-  const delay = (ms: number) => new Promise<void>((res) => setTimeout(res, ms));
-
-const handleShare = async () => {
-  // close sheet first
-  setMenuVisible(false);
-
-  // wait for modal close animation / UI settle (important on iOS)
-  await delay(250); // 150–300ms is usually enough
-
-  try {
-    const name = capitalize(pokemon.name);
-    const number = String(idNum).padStart(3, "0");
-
-    await Share.share({
-      message: `Check out ${name}! #${number}\n${imageUrl}`,
-      title: `Pokémon • ${name}`,
-      url: imageUrl, // helps iOS
-    });
-  } catch {
-    // ignore cancel
-  }
-};
+  const handleShare = async () => {
+    setMenuVisible(false);
+    try {
+      const name = capitalize(pokemon.name);
+      await Share.share({
+        message: `Check out ${name}! #${String(idNum).padStart(3, "0")}`,
+        url: imageUrl, // iOS uses this; Android uses message content
+        title: `Pokémon • ${name}`,
+      });
+    } catch {
+      // ignore cancel
+    }
+  };
 
   return (
     <>
@@ -103,7 +94,7 @@ const handleShare = async () => {
       <Modal
         visible={menuVisible}
         transparent
-        animationType="fade"
+        animationType="none"
         onRequestClose={() => setMenuVisible(false)}
       >
         <Pressable style={styles.backdrop} onPress={() => setMenuVisible(false)} />
