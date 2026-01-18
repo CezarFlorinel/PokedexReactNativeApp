@@ -18,7 +18,6 @@ import {
   Pressable,
   StyleSheet,
   View,
-  Dimensions,
   Animated,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -51,8 +50,6 @@ const TYPE_COLORS: Record<string, string> = {
   fairy: "#D685AD",
 };
 
-const { height: SCREEN_H } = Dimensions.get("window");
-const PAGER_HEIGHT = Math.max(560, SCREEN_H * 0.8);
 const HEADER_BAR_HEIGHT = 48; // height of the row with buttons/title
 
 // New medal icon (PNG) for the battle action
@@ -83,12 +80,8 @@ export default function PokemonDetailScreen() {
   const { data: isFav } = useIsFavorite(idNum);
   const toggleFavorite = useToggleFavorite();
 
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const titleOpacity = scrollY.interpolate({
-    inputRange: [0, 40, 90],
-    outputRange: [0, 0, 1],
-    extrapolate: "clamp",
-  });
+  // Title opacity is always 0 since we removed outer scroll
+  const titleOpacity = new Animated.Value(0);
 
   const evolutions = useMemo(() => flattenEvolution(chain?.chain), [chain]);
 
@@ -211,16 +204,8 @@ export default function PokemonDetailScreen() {
         </View>
       </View>
 
-      {/* ===== Scroll Content (padded down so it never goes under the header) ===== */}
-      <Animated.ScrollView
-        contentContainerStyle={{ paddingTop: HEADER_TOTAL_HEIGHT, paddingBottom: 24 }}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false}
-      >
+      {/* ===== Content (no outer scroll) ===== */}
+      <View style={{ flex: 1, paddingTop: HEADER_TOTAL_HEIGHT }}>
         {/* Header content (below absolute header) */}
         <View style={styles.headerContainer}>
           <View style={styles.nameRow}>
@@ -247,7 +232,7 @@ export default function PokemonDetailScreen() {
         </View>
 
         {/* Tabs + Pager */}
-        <View style={styles.panel}>
+        <View style={[styles.panel, { flex: 1 }]}>
           <View style={styles.tabsRow}>
             <Tab label="About" active={tab === "about"} onPress={() => goToTab("about")} />
             <Tab label="Stats" active={tab === "stats"} onPress={() => goToTab("stats")} />
@@ -256,7 +241,7 @@ export default function PokemonDetailScreen() {
 
           <PagerView
             ref={pagerRef}
-            style={{ height: PAGER_HEIGHT }}
+            style={{ flex: 1 }}
             initialPage={TAB_TO_INDEX[tab]}
             onPageSelected={(e) => setTab(INDEX_TO_TAB[e.nativeEvent.position])}
           >
@@ -290,7 +275,7 @@ export default function PokemonDetailScreen() {
             {/* Stats */}
             <View key="stats" style={{ flex: 1 }}>
               <Animated.ScrollView
-                contentContainerStyle={{ paddingBottom: 24 }}
+                contentContainerStyle={{ paddingBottom: 60 }}
                 nestedScrollEnabled
                 showsVerticalScrollIndicator={false}
               >
@@ -331,7 +316,7 @@ export default function PokemonDetailScreen() {
                 </View>
               ) : (
                 <Animated.ScrollView
-                  contentContainerStyle={{ paddingBottom: 24 }}
+                  contentContainerStyle={{ paddingBottom: 60 }}
                   nestedScrollEnabled
                   showsVerticalScrollIndicator={false}
                 >
@@ -370,7 +355,7 @@ export default function PokemonDetailScreen() {
             </View>
           </PagerView>
         </View>
-      </Animated.ScrollView>
+      </View>
     </SafeAreaView>
   );
 }

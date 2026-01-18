@@ -1,11 +1,13 @@
 import { PokemonImage } from "@/components/ui/pokemon-image";
 import { useIsFavorite, useToggleFavorite } from "@/hooks/use-favorites";
 import { Ionicons } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import AppText from "@/components/ui/app-text"
 import {
   Modal,
+  Platform,
   Pressable,
   Share,
   StyleSheet,
@@ -42,19 +44,30 @@ export default function PokemonCard({ pokemon, onPress }: PokemonCardProps) {
     });
   };
 
+
   const handleShare = async () => {
-    setMenuVisible(false);
+    // setMenuVisible(false);
     try {
-      const name = capitalize(pokemon.name);
+      if (Platform.OS === 'ios') {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } else if (Platform.OS === 'android') {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
+
+      const pokemonDisplayName = pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1);
+      const formattedId = pokemon.id.toString().padStart(3, '0');
+      const shareMessage = `Check out ${pokemonDisplayName}! 🎮\n\n#${formattedId}\n\n${imageUrl}`;
+
       await Share.share({
-        message: `Check out ${name}! #${String(idNum).padStart(3, "0")}`,
-        url: imageUrl, // iOS uses this; Android uses message content
-        title: `Pokémon • ${name}`,
+        message: shareMessage,
+        title: `${pokemonDisplayName} - Pokédex`,
+        url: imageUrl,
       });
     } catch {
-      // ignore cancel
+      // Error handling
     }
   };
+
 
   return (
     <>
